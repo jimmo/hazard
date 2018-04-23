@@ -1,4 +1,5 @@
 import asyncio
+import async_timeout
 
 import zcl.spec
 
@@ -26,7 +27,7 @@ class ZigBeeModule():
     pass
 
   def _on_device_frame(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
-    #print('Frame from {}/{} {} {} {} {} -- {}'.format(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data))
+    print('Frame from {}/{} {} {} {} {} -- {}'.format(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data))
     if addr64 in self._callbacks:
       self._callbacks[addr64](source_endpoint, dest_endpoint, cluster, profile, data)
     elif self._unknown:
@@ -60,52 +61,48 @@ class ZigBeeDevice():
   def _on_zdo(self, cluster, data):
     #print('zdo', self._addr64, self._addr16, cluster, data)
     cluster_name, seq, kwargs = zcl.spec.decode_zdo(cluster, data)
-    #print('zdo', cluster_name, seq, kwargs)
+    print('zdo', cluster_name, seq, kwargs)
 
     if seq in self._inflight:
-      f = self._inflight[seq]
-      del self._inflight[seq]
-      f.set_result(kwargs)
+      self._inflight[seq].set_result(kwargs)
 
   def _on_zcl(self, source_endpoint, dest_endpoint, cluster, profile, data):
-    kwargs = zcl.spec.decode_zcl(cluster, data)
-
-  async def _start_timeout(self, f, seq, timeout):
-    print('start timeout')
-    await asyncio.sleep(timeout)
-    print('  finish timeout')
-    if f.done():
-      print('    work done')
-      return
-    print('    cancelling')
-    f.cancel()
+    print('zcl', source_endpoint, dest_endpoint, cluster, profile, data)
+    cluster_name, seq, command_type, command_name, kwargs = zcl.spec.decode_zcl(cluster, data)
     if seq in self._inflight:
-      del self._inflight[seq]
+      self._inflight[seq].set_result((command_name, kwargs,))
 
-  async def _send(self, source_endpoint, dest_endpoint, cluster, profile, data, timeout):
-    f = asyncio.Future()
-    self._inflight[self._seq] = f
-    asyncio.get_event_loop().create_task(self._start_timeout(f, self._seq, timeout))
-
+  def _next_seq(self):
+    seq = self._seq
     self._seq = (self._seq + 1) % 256 or 1
-    result = await self._network._zigbee_module.unicast(self._addr64, self._addr16, source_endpoint, dest_endpoint, cluster, profile, data)
+    return seq
 
+  async def _send(self, seq, source_endpoint, dest_endpoint, cluster, profile, data, timeout):
+    f = asyncio.Future()
+    self._inflight[seq] = f
+    print(hex(seq))
+    result = await self._network._zigbee_module.unicast(self._addr64, self._addr16, source_endpoint, dest_endpoint, cluster, profile, data)
     if not result:
       f.cancel()
       raise ZigBeeDeliveryFailure()
 
     try:
-      return await f
-    except asyncio.CancelledError:
+      async with async_timeout.timeout(timeout):
+        return await f
+    except asyncio.TimeoutError:
       raise ZigBeeTimeout()
+    finally:
+      del self._inflight[seq]
 
   async def zdo(self, cluster_name, timeout=2, **kwargs):
-    cluster, data = zcl.spec.encode_zdo(cluster_name, self._seq, **kwargs)
-    return await self._send(0, 0, cluster, zcl.spec.Profile.ZIGBEE, data, timeout)
+    seq = self._next_seq()
+    cluster, data = zcl.spec.encode_zdo(cluster_name, seq, **kwargs)
+    return await self._send(seq, 0, 0, cluster, zcl.spec.Profile.ZIGBEE, data, timeout)
 
   async def zcl(self, profile, dest_endpoint, cluster_name, command_name, timeout=2, **kwargs):
-    cluster, data = zcl.spec.encode_cluster_command(cluster_name, command_name, self._seq, 0, **kwargs)
-    return await self._send(1, dest_endpoint, cluster, profile, data, timeout)
+    seq = self._next_seq()
+    cluster, data = zcl.spec.encode_cluster_command(cluster_name, command_name, seq, 0, **kwargs)
+    return await self._send(seq, 1, dest_endpoint, cluster, profile, data, timeout)
 
   async def _on_endpoint(self, status, addr16, simple_descriptors):
     print('endpoint info', status, addr16, simple_descriptors)
@@ -118,12 +115,6 @@ class ZigBeeDevice():
 
   async def ping(self):
     print('ping device ', hex(self._addr64))
-    try:
-      await self.zcl(zcl.spec.Profile.HOME_AUTOMATION, 3, 'onoff', 'toggle')
-      #eps = await self.zdo('active_ep', addr16=self._addr16)
-      #await self._on_endpoints(**eps)
-    except ZigBeeTimeout:
-      pass
 
 
 class ZigBeeNetwork():
@@ -147,5 +138,13 @@ class ZigBeeNetwork():
     while True:
       await asyncio.sleep(2)
       for d in self._devices.values():
-        await d.ping()
-        #await asyncio.sleep(0.5)
+        try:
+          await d.zcl(zcl.spec.Profile.HOME_AUTOMATION, 3, 'level_control', 'move_to_level', level=180, time=5)
+        except:
+          pass
+      await asyncio.sleep(2)
+      for d in self._devices.values():
+        try:
+          await d.zcl(zcl.spec.Profile.HOME_AUTOMATION, 3, 'level_control', 'move_to_level', level=20, time=5)
+        except:
+          pass

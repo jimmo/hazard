@@ -1,4 +1,5 @@
 import asyncio
+import async_timeout
 import serial_asyncio
 import struct
 
@@ -122,6 +123,7 @@ class XBeeModule(ZigBeeModule):
     if len(data) < 2:
       print('Frame too small')
       return
+    #print(data)
     frame_type, = struct.unpack('B', data[:1])
     data = data[1:]
 
@@ -130,9 +132,7 @@ class XBeeModule(ZigBeeModule):
       frame_id, = struct.unpack('B', data[:1])
       data = data[1:]
       if frame_id in self._inflight:
-        f = self._inflight[frame_id]
-        del self._inflight[frame_id]
-        f.set_result(data)
+        self._inflight[frame_id].set_result(data)
     elif frame_type == 0x91:
       # Explicit RX Indicator Frame
       addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, opt = struct.unpack('>QHBBHHB', data[:17])
@@ -150,28 +150,22 @@ class XBeeModule(ZigBeeModule):
     else:
       print('Unknown frame type: 0x{:02x}'.format(frame_type,))
 
-  async def _start_timeout(self, f, frame_id, timeout):
-    await asyncio.sleep(timeout)
-    if f.done():
-      # Completed in time -- nothing to do.
-      return
-    # We beat the frame reply, this is a timeout.
-    f.cancel()
-    if frame_id in self._inflight:
-      del self._inflight[frame_id]
-
   async def _send_frame(self, frame_type, data, timeout=1, reply=True):
     data = struct.pack('BB', frame_type, self._frame_id) + data
     data = b'\x7e' + struct.pack('>H', len(data)) + data + struct.pack('B', self._protocol._checksum(data))
-    f = asyncio.Future()
-    self._inflight[self._frame_id] = f
-    self._protocol._transport.write(data)
-    asyncio.get_event_loop().create_task(self._start_timeout(f, self._frame_id, timeout))
+    frame_id = self._frame_id
     self._frame_id = (self._frame_id + 1) % 256 or 1
+
+    f = asyncio.Future()
+    self._inflight[frame_id] = f
+    self._protocol._transport.write(data)
     try:
-      return await f
-    except asyncio.CancelledError:
+      async with async_timeout.timeout(timeout):
+        return await f
+    except asyncio.TimeoutError:
       raise ZigBeeTimeout()
+    finally:
+      del self._inflight[frame_id]
 
   async def _send_at(self, command, val=None):
     t = STRUCT_TYPES[AT_COMMANDS[command]]
@@ -191,7 +185,7 @@ class XBeeModule(ZigBeeModule):
 
   async def _ping(self):
     while True:
-      await asyncio.sleep(5)
+      await asyncio.sleep(1)
       try:
         print('OP response', hex(await self._send_at('OP')))
       except ZigBeeTimeout:

@@ -71,6 +71,8 @@ STRUCT_TYPES = {
 
 AT_COMMANDS = {
   'OP': 'uint64',
+  'SH': 'uint32',
+  'SL': 'uint32',
 }
 
 
@@ -91,6 +93,14 @@ class XBeeModule(ZigBeeModule):
     loop.create_task(coro)
     loop.create_task(self._ping())
 
+  async def get_coordinator_addr64(self):
+    sh = await self._send_at('SH')
+    sl = await self._send_at('SL')
+    return (sh << 32) + sl
+
+  async def get_pan_id(self):
+    return await self._send_at('OP')
+
   async def unicast(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     return await self._tx_explicit(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data)
 
@@ -102,7 +112,7 @@ class XBeeModule(ZigBeeModule):
 
   async def _tx_explicit(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data, radius=0, retries=True, indirect=False, multicast=False, aps=False, extended_timeout=False):
     opt = 0
-    if retries:
+    if not retries:
       opt |= 0x01
     if indirect:
       opt |= 0x04
@@ -115,7 +125,7 @@ class XBeeModule(ZigBeeModule):
     data = struct.pack('>QHBBHHBB', addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, radius, opt) + data
     response = await self._send_frame(0x11, data)
     sent_addr16, retry_count, delivery_status, discovery_status, = struct.unpack('>HBBB', response)
-    #print('tx response', sent_addr16, retry_count, delivery_status, discovery_status)
+    print('tx response', sent_addr16, retry_count, delivery_status, discovery_status)
     #return True
     return delivery_status == 0
 
@@ -150,7 +160,7 @@ class XBeeModule(ZigBeeModule):
     else:
       print('Unknown frame type: 0x{:02x}'.format(frame_type,))
 
-  async def _send_frame(self, frame_type, data, timeout=1, reply=True):
+  async def _send_frame(self, frame_type, data, timeout=5, reply=True):
     data = struct.pack('BB', frame_type, self._frame_id) + data
     data = b'\x7e' + struct.pack('>H', len(data)) + data + struct.pack('B', self._protocol._checksum(data))
     frame_id = self._frame_id
@@ -185,7 +195,7 @@ class XBeeModule(ZigBeeModule):
 
   async def _ping(self):
     while True:
-      await asyncio.sleep(1)
+      await asyncio.sleep(10)
       try:
         print('OP response', hex(await self._send_at('OP')))
       except ZigBeeTimeout:

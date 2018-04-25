@@ -18,26 +18,15 @@ def signal_handler(_signal, _frame):
 
 
 async def handle_main(request):
-  text = "Hazard"
-  return aiohttp.web.Response(text=text)
+  return aiohttp.web.FileResponse('hazard/html/zigbee.html')
 
 
-async def handle_zigbee_zdo(request):
-  return aiohttp.web.Response()
+async def handle_js(request):
+  return aiohttp.web.FileResponse('hazard/js/{}'.format(request.match_info['file']))
 
 
-async def handle_zigbee_profile_zcl(request):
-  return aiohttp.web.Response()
-
-
-async def handle_zigbee_cluster_zcl(request):
-  profile_name = request.match_info['profile']
-  endpoint = int(request.match_info['endpoint'])
-  cluster_name = request.match_info['cluster_name']
-  command_name = request.match_info['command_name']
-  kwargs = {}
-  await z._devices[9518399593889494811].zcl(zcl.spec.Profile.HOME_AUTOMATION, endpoint, cluster_name, command_name, **kwargs)
-  return aiohttp.web.Response()
+async def handle_css(request):
+  return aiohttp.web.FileResponse('hazard/css/{}'.format(request.match_info['file']))
 
 
 def main():
@@ -53,10 +42,9 @@ def main():
   app = aiohttp.web.Application()
   app.add_routes([
     aiohttp.web.get('/', handle_main),
-                  aiohttp.web.post('/api/zigbee/{device}/zdo/{cluster_name}', handle_zigbee_zdo),
-                  aiohttp.web.post('/api/zigbee/{device}/{profile}/{endpoint}/zcl/{cluster_name}/profile/{command_name}', handle_zigbee_profile_zcl),
-                  aiohttp.web.get('/api/zigbee/{device}/{profile}/{endpoint}/zcl/{cluster_name}/cluster/{command_name}', handle_zigbee_cluster_zcl),
-  ])
+    aiohttp.web.get('/js/{file}', handle_js),
+    aiohttp.web.get('/css/{file}', handle_css),
+  ] + z.get_rest_routes())
   aiohttp.web.run_app(app)
 
 

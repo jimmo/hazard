@@ -1,7 +1,21 @@
 async function loadDevices() {
-  let response = await fetch('/api/zigbee/devices');
+  let response = await fetch('/api/zigbee/device/list');
   let devices = await response.json();
   return devices;
+}
+
+async function renameDevice(device, name) {
+  device.name = name;
+
+  let response = await fetch('/api/zigbee/device/' + device.addr64, {
+    method: 'POST',
+    body: JSON.stringify(device),
+    headers: new Headers({
+      'Content-Type': 'application/json'
+    })
+  });
+
+  return await response.json();
 }
 
 async function loadStatus() {
@@ -32,7 +46,7 @@ async function getProfileById(profileId) {
 
 async function sendZdo(device, clusterName, data) {
   data = data || {};
-  let response = await fetch('/api/zigbee/zdo/' + device.addr64 + '/' + clusterName, {
+  let response = await fetch('/api/zigbee/device/' + device.addr64 + '/zdo/' + clusterName, {
     method: 'POST',
     body: JSON.stringify(data),
     headers: new Headers({
@@ -44,7 +58,19 @@ async function sendZdo(device, clusterName, data) {
 
 async function sendZclCluster(device, endpoint, clusterName, commandName, data) {
   data = data || {};
-  let response = await fetch('/api/zigbee/zcl/cluster/' + device.addr64 + '/' + endpoint.profile.name + '/' + endpoint.endpoint + '/' + clusterName + '/' + commandName, {
+  let response = await fetch('/api/zigbee/device/' + device.addr64 + '/zcl/cluster/' + endpoint.profile.name + '/' + endpoint.endpoint + '/' + clusterName + '/' + commandName, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: new Headers({
+      'Content-Type': 'application/json'
+    })
+  });
+  return await response.json();
+}
+
+async function sendGroupZclCluster(group, endpoint, clusterName, commandName, data) {
+  data = data || {};
+  let response = await fetch('/api/zigbee/group/' + group + '/zcl/cluster/' + endpoint.profile.name + '/' + endpoint.endpoint + '/' + clusterName + '/' + commandName, {
     method: 'POST',
     body: JSON.stringify(data),
     headers: new Headers({

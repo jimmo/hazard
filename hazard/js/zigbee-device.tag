@@ -1,5 +1,5 @@
 <zigbee-device>
-  <h4 onclick={click}>{opts.device.addr64} / {opts.device.addr16}</h4>
+  <h4 onclick={click}>{opts.device.addr64} / {opts.device.addr16} / <input type="text" value={opts.device.name} onchange={update_name}></h4>
   <ul>
     <li>
       <zigbee-zdo-list device={opts.device}></zigbee-zdo-list>
@@ -24,6 +24,10 @@
   <script>
    this.endpoints = [];
    this.hide = true;
+
+   this.update_name = async function(e) {
+     await renameDevice(opts.device, e.target.value);
+   };
 
    this.toggle = async function() {
      if (this.hide) {

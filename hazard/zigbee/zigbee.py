@@ -51,10 +51,11 @@ class ZigBeeDeliveryFailure(RuntimeError):
 
 
 class ZigBeeDevice():
-  def __init__(self, network, addr64, addr16):
+  def __init__(self, network, addr64, addr16, name=''):
     self._network = network
     self._addr64 = addr64
     self._addr16 = addr16
+    self._name = name or 'Unknown 0x{:08x}'.format(self._addr64)
     self._network._zigbee_module.set_device_handler(self._addr64, self._on_frame)
     self._seq = 1
     self._inflight = {}
@@ -81,7 +82,7 @@ class ZigBeeDevice():
     if seq in self._inflight:
       self._inflight[seq].set_result((command_name, kwargs,))
     if self._addr64 == 0x137a000001385b:
-      asyncio.get_event_loop().create_task(self._network._devices[0x84182600000186f8].zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, 3, 'onoff', 'toggle'))
+      asyncio.get_event_loop().create_task(self._network.zcl_cluster_group(1234, zcl.spec.Profile.HOME_AUTOMATION, 3, 'onoff', 'toggle'))
 
   def _next_seq(self):
     seq = self._seq
@@ -135,11 +136,21 @@ class ZigBeeDevice():
   async def ping(self):
     print('ping device ', hex(self._addr64))
 
-  def config(self):
+  def to_json(self):
     return {
       'addr64': '0x{:08x}'.format(self._addr64),
       'addr16': self._addr16,
+      'name': self._name,
     }
+
+  @classmethod
+  def from_json(cls, network, device_config):
+    return ZigBeeDevice(network, int(device_config['addr64'], 16), device_config['addr16'], device_config.get('name', ''))
+
+  def update_from_json(self, device_config):
+    if self._addr64 != int(device_config['addr64'], 16):
+      raise ValueError('Updating from incorrect device')
+    self._name = device_config.get('name', '')
 
 
 class ZigBeeNetwork():
@@ -150,9 +161,9 @@ class ZigBeeNetwork():
     try:
       with open('/home/jimmo/.hazard', 'r') as f:
         config = json.load(f)
-        for device in config.get('devices', []):
-          addr64 = int(device['addr64'], 16)
-          self._devices[addr64] = ZigBeeDevice(self, addr64, device['addr16'])
+        for device_config in config.get('devices', []):
+          device = ZigBeeDevice.from_json(self, device_config)
+          self._devices[device._addr64] = device
     except FileNotFoundError:
       pass
     except json.decoder.JSONDecodeError:
@@ -160,7 +171,7 @@ class ZigBeeNetwork():
 
   def _save(self):
     with open('/home/jimmo/.hazard', 'w') as f:
-      json.dump({'devices': [d.config() for d in self._devices.values()]}, f)
+      json.dump({'devices': [d.to_json() for d in self._devices.values()]}, f)
 
   def _on_unknown_device_frame(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     if addr64 not in self._devices:
@@ -191,10 +202,12 @@ class ZigBeeNetwork():
     return [
       aiohttp.web.get('/api/zigbee/spec', self.handle_rest_spec),
       aiohttp.web.get('/api/zigbee/status', self.handle_rest_status),
-      aiohttp.web.get('/api/zigbee/devices', self.handle_rest_devices),
-      aiohttp.web.post('/api/zigbee/zdo/{device}/{cluster_name}', self.handle_rest_zdo),
-      aiohttp.web.post('/api/zigbee/zcl/profile/{device}/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_rest_profile_zcl),
-      aiohttp.web.post('/api/zigbee/zcl/cluster/{device}/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_rest_cluster_zcl),
+      aiohttp.web.get('/api/zigbee/device/list', self.handle_rest_list_device),
+      aiohttp.web.post('/api/zigbee/device/{device}', self.handle_rest_device),
+      aiohttp.web.post('/api/zigbee/device/{device}/zdo/{cluster_name}', self.handle_rest_device_zdo),
+      aiohttp.web.post('/api/zigbee/device/{device}/zcl/profile/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_rest_device_profile_zcl),
+      aiohttp.web.post('/api/zigbee/device/{device}/zcl/cluster/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_rest_device_cluster_zcl),
+      aiohttp.web.post('/api/zigbee/group/{group}/zcl/cluster/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_rest_group_cluster_zcl),
     ]
 
   async def handle_rest_spec(self, request):
@@ -206,9 +219,16 @@ class ZigBeeNetwork():
       'pan_id': '0x{:08x}'.format(await self._zigbee_module.get_pan_id()),
     })
 
-  async def handle_rest_devices(self, request):
-    result = [{ 'addr64': '0x{:08x}'.format(device._addr64), 'addr16': device._addr16 } for device in self._devices.values()]
+  async def handle_rest_list_device(self, request):
+    result = [device.to_json() for device in self._devices.values()]
     return aiohttp.web.json_response(result)
+
+  async def handle_rest_device(self, request):
+    data = await request.json()
+    device = self.get_device_from_request(request)
+    device.update_from_json(data)
+    self._save()
+    return aiohttp.web.json_response(device.to_json())
 
   def get_device_from_request(self, request):
     addr64 = int(request.match_info['device'], 16)
@@ -222,23 +242,53 @@ class ZigBeeNetwork():
       return aiohttp.web.HTTPNotFound('Unknown profile')
     return profile
 
-  async def handle_rest_zdo(self, request):
+  async def handle_rest_device_zdo(self, request):
     device = self.get_device_from_request(request)
     cluster_name = request.match_info['cluster_name']
     kwargs = await request.json()
     result = await device.zdo(cluster_name, **kwargs)
     return aiohttp.web.json_response(result)
 
-  async def handle_rest_profile_zcl(self, request):
+  async def handle_rest_device_profile_zcl(self, request):
     device = self.get_device_from_request(request)
     profile = self.get_profile_from_request(request)
     kwargs = await request.json()
     result = await device.zcl_profile(profile, int(request.match_info['endpoint'], 10), request.match_info['cluster_name'], request.match_info['command_name'], **kwargs)
     return aiohttp.web.json_response(result)
 
-  async def handle_rest_cluster_zcl(self, request):
+  async def handle_rest_device_cluster_zcl(self, request):
     device = self.get_device_from_request(request)
     profile = self.get_profile_from_request(request)
     kwargs = await request.json()
     result = await device.zcl_cluster(profile, int(request.match_info['endpoint'], 10), request.match_info['cluster_name'], request.match_info['command_name'], **kwargs)
+    return aiohttp.web.json_response(result)
+
+  async def _send_group(self, group_addr16, seq, source_endpoint, dest_endpoint, cluster, profile, data, timeout):
+    if profile == zcl.spec.Profile.ZIGBEE_LIGHT_LINK:
+      profile = zcl.spec.Profile.HOME_AUTOMATION
+
+    result = await self._zigbee_module.multicast(group_addr16, source_endpoint, dest_endpoint, cluster, profile, data)
+    if not result:
+      raise ZigBeeDeliveryFailure()
+
+  async def zdo_group(self, group_addr16, cluster_name, timeout=10, **kwargs):
+    seq = 127
+    cluster, data = zcl.spec.encode_zdo(cluster_name, seq, **kwargs)
+    return await self._send_group(group_addr16, seq, 0, 0, cluster, zcl.spec.Profile.ZIGBEE, data, timeout)
+
+  async def zcl_cluster_group(self, group_addr16, profile, dest_endpoint, cluster_name, command_name, timeout=5, **kwargs):
+    seq = 127
+    cluster, data = zcl.spec.encode_cluster_command(cluster_name, command_name, seq, 0, **kwargs)
+    return await self._send_group(group_addr16, seq, 1, dest_endpoint, cluster, profile, data, timeout)
+
+  async def zcl_profile_group(self, group_addr16, profile, dest_endpoint, cluster_name, command_name, timeout=5, **kwargs):
+    seq = 127
+    cluster, data = zcl.spec.encode_profile_command(cluster_name, command_name, seq, 0, **kwargs)
+    return await self._send_group(group_addr16, seq, 1, dest_endpoint, cluster, profile, data, timeout)
+
+  async def handle_rest_group_cluster_zcl(self, request):
+    group_addr16 = int(request.match_info['group'], 10)
+    profile = self.get_profile_from_request(request)
+    kwargs = await request.json()
+    result = await self.zcl_cluster_group(group_addr16, profile, int(request.match_info['endpoint'], 10), request.match_info['cluster_name'], request.match_info['command_name'], **kwargs)
     return aiohttp.web.json_response(result)

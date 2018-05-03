@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="/css/web/hazard.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.11/css/all.css" integrity="sha384-p2jx59pefphTFIpeqCcISO9MdVfIm4pNnsL08A6v5vaQc4owkQqxMV8kg4Yvhaw/" crossorigin="anonymous">
+  </head>
+  <body>
+    <hazard-zone-list></hazard-zone-list>
+    <hazard-thing-list mode="map"></hazard-thing-list>
+  </body>
+  <script type="text/javascript" src="/js/web/web.js"></script>
+  <script type="text/javascript" src="/js/web/riot+compiler.js"></script>
+  <!--<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/riot/3.9.4/riot+compiler.min.js"></script>-->
+  <script type="riot/tag" src="/riot/web/hazard-zone-list.tag"></script>
+  <script type="riot/tag" src="/riot/web/hazard-thing-list.tag"></script>
+  <script>
+   riot.mount('*')
+  </script>
+</html>

@@ -1,0 +1,5 @@
+aiohttp
+async_timeout
+pyserial
+pyserial_asyncio
+-e ../python-zcl/

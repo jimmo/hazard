@@ -198,8 +198,9 @@ class ZigBeeNetwork():
       #   except:
       #     pass
 
-  def get_rest_routes(self):
+  def get_routes(self):
     return [
+      aiohttp.web.get('/zigbee', self.handle_zigbee),
       aiohttp.web.get('/api/zigbee/spec', self.handle_rest_spec),
       aiohttp.web.get('/api/zigbee/status', self.handle_rest_status),
       aiohttp.web.get('/api/zigbee/device/list', self.handle_rest_list_device),
@@ -209,6 +210,9 @@ class ZigBeeNetwork():
       aiohttp.web.post('/api/zigbee/device/{device}/zcl/cluster/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_rest_device_cluster_zcl),
       aiohttp.web.post('/api/zigbee/group/{group}/zcl/cluster/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_rest_group_cluster_zcl),
     ]
+
+  async def handle_zigbee(self, request):
+    return aiohttp.web.FileResponse('hazard/html/zigbee.html')
 
   async def handle_rest_spec(self, request):
     return aiohttp.web.json_response(zcl.spec.get_json())

@@ -3,7 +3,8 @@ import async_timeout
 import serial_asyncio
 import struct
 
-from .zigbee import ZigBeeModule, ZigBeeTimeout
+from hazard.plugins.zigbee.common import ZigBeeTimeout
+from hazard.plugins.zigbee.module import ZigBeeModule
 
 
 class XBeeProtocol(asyncio.Protocol):

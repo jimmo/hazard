@@ -32,7 +32,7 @@ class Light(Thing, LightBase):
     LightBase.__init__(self)
 
   def _features(self):
-    return ['light', 'light-level', 'light-temperature',]
+    return super()._features() + ['light', 'light-level', 'light-temperature',]
 
 
 @register_thing
@@ -42,4 +42,4 @@ class LightGroup(ThingGroup, LightBase):
     LightBase.__init__(self)
 
   def _features(self):
-    return ['light', 'light-level', 'light-temperature',]
+    return super()._features() + ['light', 'light-level', 'light-temperature',]

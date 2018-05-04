@@ -18,11 +18,14 @@ class ThingBase:
     self._id = None
     self._name = None
     self._zone = None
+    self._location = { 'x': 0, 'y': 0 }
+
 
   def load_json(self, json):
     self._id = json.get('id', None)
     self._name = json.get('name', '(unknown)')
     self._zone = self._hazard.find_zone(json.get('zone', None))
+    self._location = json.get('location', {'x': 0, 'y': 0})
 
   def to_json(self):
     return {
@@ -31,6 +34,7 @@ class ThingBase:
       'name': self._name,
       'zone': self._zone.name() if self._zone else None,
       'features': self._features(),
+      'location': self._location,
     }
 
   def id(self):
@@ -59,32 +63,31 @@ class ThingBase:
 class Thing(ThingBase):
   def __init__(self, hazard):
     super().__init__(hazard)
-    self._location = { 'x': 0, 'y': 0 }
 
   def load_json(self, json):
     super().load_json(json)
-    self._location = json.get('location', {'x': 0, 'y': 0})
 
   def to_json(self):
     json = super().to_json()
-    json.update({
-      'location': self._location,
-    })
+    json.update({})
     return json
 
 
 class ThingGroup(ThingBase):
   def __init__(self, hazard):
     super().__init__(hazard)
-    self._bounds = { 'x': 0, 'y': 0, 'w': 100, 'h': 100 }
+    self._size = { 'w': 100, 'h': 100 }
 
   def load_json(self, json):
     super().load_json(json)
-    self._bounds = json.get('bounds', {'x': 0, 'y': 0, 'w': 100, 'h': 100})
+    self._size = json.get('size', {'w': 100, 'h': 100})
 
   def to_json(self):
     json = super().to_json()
     json.update({
-      'bounds': self._bounds,
+      'size': self._size,
     })
     return json
+
+  def _features(self):
+    return ['group']

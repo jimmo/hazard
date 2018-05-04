@@ -15,23 +15,23 @@ class Hazard:
     self._things = {}
 
   def load(self):
-    try:
-      with open('/home/jimmo/.hazard', 'r') as f:
-        config = json.load(f)
-        for p in config.get('plugins', []):
-          print('Plugin: {}'.format(p))
-          p = create_plugin(p, self)
-          self._plugins[type(p).__name__] = p
-        for z in config.get('zones', []):
-          print('Zone: {}'.format(z))
-        for t in config.get('things', []):
-          print('Thing: {}'.format(t))
-          t = create_thing(t, self)
-          self._things[t.id()] = t
-    except FileNotFoundError:
-      pass
-    except json.decoder.JSONDecodeError:
-      pass
+    #try:
+    with open('/home/jimmo/.hazard', 'r') as f:
+      config = json.load(f)
+      for p in config.get('plugins', []):
+        print('Plugin: {}'.format(p))
+        p = create_plugin(p, self)
+        self._plugins[type(p).__name__] = p
+      for z in config.get('zones', []):
+        print('Zone: {}'.format(z))
+      for t in config.get('things', []):
+        print('Thing: {}'.format(t))
+        t = create_thing(t, self)
+        self._things[t.id()] = t
+    #except FileNotFoundError:
+    #  pass
+    #except json.decoder.JSONDecodeError:
+    #  pass
 
     if 'RestPlugin' not in self._plugins:
       print('Creating default rest plugin')

@@ -40,7 +40,7 @@ class SwitchBase(Thing):
     return json
 
   def _features(self):
-    return ['switch',]
+    return super()._features() + ['switch',]
 
   async def action(self, action, data):
     button = self._buttons[data.get('button', 0)]

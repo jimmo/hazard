@@ -26,3 +26,21 @@ async function thingSave(thing) {
   });
   return await response.json();
 }
+
+function sortHelper() {
+  const keys = arguments;
+  return function(a, b) {
+    for (const k of keys) {
+      if (a[k] < b[k]) {
+        return -1;
+      } else if (a[k] > b[k]) {
+        return 1;
+      }
+    }
+    return 0;
+  }
+}
+
+function thingHasFeature(thing, f) {
+  return thing.features.indexOf(f) >= 0;
+}

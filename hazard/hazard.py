@@ -40,7 +40,7 @@ class Hazard:
       print('Creating default web plugin')
       self._plugins['WebPlugin'] = hazard.plugins.WebPlugin(self)
 
-    if not self._things:
+    if 1 not in self._things:
       s = hazard.things.Switch(self)
       s._id = 1
       s._name = 'Switch 1'
@@ -48,18 +48,27 @@ class Hazard:
       s.add_button('print("b")')
       s.add_button('print("c")')
       self._things[s.id()] = s
+
+    if 2 not in self._things:
       l1 = hazard.things.Light(self)
       l1._id = 2
       l1._name = 'Light 1'
       self._things[l1.id()] = l1
+
+    if 3 not in self._things:
       l2 = hazard.things.Light(self)
       l2._id = 3
       l2._name = 'Light 2'
       self._things[l2.id()] = l2
+
+    if 4 not in self._things:
       g1 = hazard.things.LightGroup(self)
       g1._id = 4
       g1._name = 'Group 1'
       self._things[g1.id()] = g1
+
+    if 5 not in self._things:
+      zl = hazard.plugins.zigbee.things.ZigBeeLight(self)
 
     self.save()
 
@@ -77,6 +86,9 @@ class Hazard:
         ],
       }
       json.dump(config, f, indent=2)
+
+  def find_plugin(self, cls):
+    return self._plugins[cls.__name]
 
   def find_zone(self, name):
     return None

@@ -57,7 +57,7 @@ class ThingBase:
     })
 
   async def action(self, action, data):
-    getattr(self, action)(**data)
+    await getattr(self, action)(**data)
 
 
 class Thing(ThingBase):

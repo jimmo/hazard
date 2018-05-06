@@ -12,6 +12,10 @@ class ZigBeeNetwork():
     self._devices = {}
 
   def to_json(self):
+    print('network to json')
+    print({
+      'devices': [d.to_json() for d in self._devices.values()]
+    })
     return {
       'devices': [d.to_json() for d in self._devices.values()]
     }
@@ -32,6 +36,11 @@ class ZigBeeNetwork():
 
   def all_devices(self):
     return self._devices.values()
+
+  def find_device(self, addr64):
+    if isinstance(addr64, str):
+      addr64 = int(addr64, 16)
+    return self._devices[addr64]
 
   async def _send_group(self, group_addr16, seq, source_endpoint, dest_endpoint, cluster, profile, data, timeout):
     if profile == zcl.spec.Profile.ZIGBEE_LIGHT_LINK:

@@ -6,22 +6,22 @@ class LightBase:
     self._color = False
     self._temperature = False
 
-  def on(self):
+  async def on(self):
     pass
 
-  def off(self):
+  async def off(self):
     pass
 
-  def toggle(self):
+  async def toggle(self):
     print('toggle', self._name)
 
-  def level(self, level):
+  async def level(self, level):
     print('level', self._name, level)
 
-  def hue(self, hue):
+  async def hue(self, hue):
     pass
 
-  def temperature(self, temperature):
+  async def temperature(self, temperature):
     print('temperature', self._name, temperature)
 
 

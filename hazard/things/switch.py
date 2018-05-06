@@ -44,7 +44,7 @@ class SwitchBase(Thing):
 
   async def action(self, action, data):
     button = self._buttons[data.get('button', 0)]
-    getattr(button, action)()
+    await getattr(button, action)()
 
 
 class SwitchButton(SwitchButtonBase):
@@ -55,10 +55,10 @@ class SwitchButton(SwitchButtonBase):
       'double_tap': '',
     }
 
-  def tap(self):
+  async def tap(self):
     self._switch.execute(self._code['tap'])
 
-  def double_tap(self):
+  async def double_tap(self):
     self._switch.execute(self._code['double_tap'])
 
 
@@ -86,13 +86,13 @@ class StatefulSwitchButton(SwitchButtonBase):
       'toggle': '',
     }
 
-  def on(self):
+  async def on(self):
     self._switch.execute(self._code['on'])
 
-  def off(self):
+  async def off(self):
     self._switch.execute(self._code['off'])
 
-  def toggle(self):
+  async def toggle(self):
     self._switch.execute(self._code['toggle'])
 
 

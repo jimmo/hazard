@@ -5,6 +5,8 @@ from hazard.plugin import HazardPlugin, register_plugin
 from hazard.plugins.zigbee.network import ZigBeeNetwork
 from hazard.plugins.zigbee.xbee import XBeeModule
 
+import hazard.plugins.zigbee.things
+
 
 @register_plugin
 class ZigBeePlugin(HazardPlugin):
@@ -28,10 +30,14 @@ class ZigBeePlugin(HazardPlugin):
   def to_json(self):
     json = super().to_json()
     if self._module:
-      json['module'] = self._module.to_json(),
+      json['module'] = self._module.to_json()
     if self._network:
-      json['network'] = self._network.to_json(),
+      json['network'] = self._network.to_json()
+    print(json)
     return json
+
+  def network(self):
+    return self._network
 
   def get_routes(self):
     return [

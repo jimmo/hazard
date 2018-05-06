@@ -9,7 +9,7 @@ class ZigBeeDevice():
     self._network = network
     self._addr64 = addr64
     self._addr16 = addr16
-    self._name = name or 'Unknown 0x{:08x}'.format(self._addr64)
+    self._name = name or 'Unknown {}'.format(self.addr64hex())
     self._network._zigbee_module.set_device_handler(self._addr64, self._on_frame)
     self._seq = 1
     self._inflight = {}
@@ -87,9 +87,12 @@ class ZigBeeDevice():
   #     descriptors = await self.zdo('simple_desc', addr16=self._addr16, endpoint=endpoint)
   #     await self._on_endpoint(**descriptors)
 
+  def addr64hex(self):
+    return '0x{:08x}'.format(self._addr64)
+
   def to_json(self):
     return {
-      'addr64': '0x{:08x}'.format(self._addr64),
+      'addr64': self.addr64hex(),
       'addr16': self._addr16,
       'name': self._name,
     }

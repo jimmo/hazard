@@ -6,10 +6,21 @@ def register_thing(cls):
   return cls
 
 
-def create_thing(json, hazard):
+def create_thing_from_json(json, hazard):
   thing = THINGS[json['type']](hazard)
   thing.load_json(json)
   return thing
+
+
+def create_thing(cls, hazard):
+  if not isinstance(cls, str):
+    cls = cls.__name__
+  thing = THINGS[cls](hazard)
+  return thing
+
+
+def get_thing_types():
+  return THINGS.keys()
 
 
 class ThingBase:
@@ -19,7 +30,6 @@ class ThingBase:
     self._name = None
     self._zone = None
     self._location = { 'x': 0, 'y': 0 }
-
 
   def load_json(self, json):
     self._id = json.get('id', None)
@@ -50,6 +60,8 @@ class ThingBase:
     return []
 
   def execute(self, code):
+    code = 'async def __code():\n' + '\n'.join('  ' + line for line in code.split('\n')) + '\n\nimport asyncio\nasyncio.get_event_loop().create_task(__code())\n'
+    print(code)
     exec(code, {
       'thing': self._hazard.find_thing,
     }, {

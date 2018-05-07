@@ -1,7 +1,10 @@
 from hazard.thing import register_thing
-from hazard.things import Light
+from hazard.things import Light, LightGroup
 
 import zcl.spec
+
+TRANSITION_TIME = 8
+
 
 @register_thing
 class ZigBeeLight(Light):
@@ -9,6 +12,17 @@ class ZigBeeLight(Light):
     super().__init__(hazard)
     self._device = None
     self._endpoint = None
+
+  async def create_from_device(self, device):
+    self._device = device
+    self._name = device._name
+
+    active_eps = await device.zdo('active_ep', addr16=device._addr16)
+    for endpoint in active_eps['active_eps']:
+      desc = await device.zdo('simple_desc', addr16=device._addr16, endpoint=endpoint)
+      desc = desc['simple_descriptors'][0]
+      self._endpoint = desc['endpoint']
+      break
 
   async def on(self):
     if not self._device:
@@ -28,17 +42,19 @@ class ZigBeeLight(Light):
   async def level(self, level):
     if not self._device:
       return
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level', timeout=5, level=int(level*255), time=20)
+    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level', timeout=5, level=int(level*255), time=TRANSITION_TIME)
 
   async def hue(self, hue):
     if not self._device:
       return
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(hue*255), dir=0, time=20)
+    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(hue*255), dir=0, time=TRANSITION_TIME)
 
   async def temperature(self, temperature):
     if not self._device:
       return
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5, mireds=0, time=10)
+    mireds = int(1e6 / temperature)
+    print(mireds)
+    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_color_temperature', timeout=5, mireds=mireds, time=TRANSITION_TIME)
 
   def to_json(self):
     json = super().to_json()
@@ -48,7 +64,62 @@ class ZigBeeLight(Light):
     })
     return json
 
-  def from_json(self, json):
-    super().from_json(json)
-    self._device = self._hazard.find_plugin(ZigBeePlugin).network().find_device(json['device'])
+  def load_json(self, json):
+    super().load_json(json)
+    self._device = self._hazard.find_plugin('ZigBeePlugin').network().find_device(json['device'])
+    self._endpoint = json['endpoint']
+
+
+
+@register_thing
+class ZigBeeLightGroup(LightGroup):
+  def __init__(self, hazard):
+    super().__init__(hazard)
+    self._network = None
+    self._group_addr16 = None
+    self._endpoint = None
+
+  async def on(self):
+    if not self._network:
+      return
+    await self._network.zcl_cluster_group(self._group_addr16, zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
+
+  async def off(self):
+    if not self._network:
+      return
+    await self._network.zcl_cluster_group(self._group_addr16, zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
+
+  async def toggle(self):
+    if not self._network:
+      return
+    await self._network.zcl_cluster_group(self._group_addr16, zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'toggle', timeout=5)
+
+  async def level(self, level):
+    if not self._network:
+      return
+    await self._network.zcl_cluster_group(self._group_addr16, zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level', timeout=5, level=int(level*255), time=TRANSITION_TIME)
+
+  async def hue(self, hue):
+    if not self._network:
+      return
+    await self._network.zcl_cluster_group(self._group_addr16, zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(hue*255), dir=0, time=TRANSITION_TIME)
+
+  async def temperature(self, temperature):
+    if not self._network:
+      return
+    mireds = int(1e6 / temperature)
+    await self._network.zcl_cluster_group(self._group_addr16, zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_color_temperature', timeout=5, mireds=mireds, time=TRANSITION_TIME)
+
+  def to_json(self):
+    json = super().to_json()
+    json.update({
+      'group_addr16': self._group_addr16,
+      'endpoint': self._endpoint,
+    })
+    return json
+
+  def load_json(self, json):
+    super().load_json(json)
+    self._network = self._hazard.find_plugin('ZigBeePlugin').network()
+    self._group_addr16 = json['group_addr16']
     self._endpoint = json['endpoint']

@@ -3,6 +3,14 @@ class ZigBeeModule():
     self._callbacks= {}
     self._unknown = None
 
+  def load_json(self, json):
+    pass
+
+  def to_json(self):
+    return {
+      'type': type(self).__name__
+    }
+
   def set_unknown_device_handler(self, callback):
     self._unknown = callback
 

@@ -83,14 +83,32 @@ class XBeeModule(ZigBeeModule):
     self._protocol = None
     self._frame_id = 27
     self._inflight = {}
+    self._port = ''
+    self._baudrate = 0
+
+  def load_json(self, json):
+    super().load_json(json)
+    self._port = json.get('port', '')
+    self._baudrate = json.get('baudrate', 0)
+    self.connect()
+
+  def to_json(self):
+    json = super().to_json()
+    json.update({
+      'port': self._port,
+      'baudrate': self._baudrate,
+    })
+    return json
 
   def _create_protocol(self):
     self._protocol = XBeeProtocol(self)
     return self._protocol
 
-  def connect(self, port, baudrate):
+  def connect(self):
+    if not self._port or not self._baudrate:
+      return
     loop = asyncio.get_event_loop()
-    coro = serial_asyncio.create_serial_connection(loop, self._create_protocol, port, baudrate=baudrate)
+    coro = serial_asyncio.create_serial_connection(loop, self._create_protocol, self._port, baudrate=self._baudrate)
     loop.create_task(coro)
     loop.create_task(self._ping())
 
@@ -125,6 +143,7 @@ class XBeeModule(ZigBeeModule):
       opt |= 0x40
     data = struct.pack('>QHBBHHBB', addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, radius, opt) + data
     response = await self._send_frame(0x11, data)
+    print(response)
     sent_addr16, retry_count, delivery_status, discovery_status, = struct.unpack('>HBBB', response)
     print('tx response', sent_addr16, retry_count, delivery_status, discovery_status)
     #return True
@@ -169,6 +188,7 @@ class XBeeModule(ZigBeeModule):
 
     f = asyncio.Future()
     self._inflight[frame_id] = f
+    print('frame', data)
     self._protocol._transport.write(data)
     try:
       async with async_timeout.timeout(timeout):
@@ -196,8 +216,10 @@ class XBeeModule(ZigBeeModule):
 
   async def _ping(self):
     while True:
-      await asyncio.sleep(10)
+      for i in range(50):
+        await asyncio.sleep(0.1)
       try:
+        print('Ping XBee module')
         print('OP response', hex(await self._send_at('OP')))
       except ZigBeeTimeout:
         print('timeout')

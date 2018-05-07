@@ -7,6 +7,8 @@ from hazard.plugins.zigbee.xbee import XBeeModule
 
 import hazard.plugins.zigbee.things
 
+import zcl.spec
+
 
 @register_plugin
 class ZigBeePlugin(HazardPlugin):
@@ -17,23 +19,19 @@ class ZigBeePlugin(HazardPlugin):
 
   def load_json(self, json):
     super().load_json(json)
-    module = json.get('module', {})
-    if module:
-      if module['type'] == 'XBeeModule':
-        self._module = XBeeModule()
-      else:
-        raise ValueError('Unknown zigbee module type')
-      self._module.load_json(module)
+    module = json['module']
+    if module.get('type', 'XBeeModule') == 'XBeeModule':
+      self._module = XBeeModule()
+    else:
+      raise ValueError('Unknown zigbee module type')
+    self._module.load_json(module)
     self._network = ZigBeeNetwork(self._module)
     self._network.load_json(json.get('network', {}))
 
   def to_json(self):
     json = super().to_json()
-    if self._module:
-      json['module'] = self._module.to_json()
-    if self._network:
-      json['network'] = self._network.to_json()
-    print(json)
+    json['module'] = self._module.to_json()
+    json['network'] = self._network.to_json()
     return json
 
   def network(self):
@@ -46,6 +44,7 @@ class ZigBeePlugin(HazardPlugin):
       aiohttp.web.get('/api/zigbee/status', self.handle_status),
       aiohttp.web.get('/api/zigbee/device/list', self.handle_list_device),
       aiohttp.web.post('/api/zigbee/device/{device}', self.handle_device),
+      aiohttp.web.post('/api/zigbee/device/{device}/create', self.handle_device_create),
       aiohttp.web.post('/api/zigbee/device/{device}/zdo/{cluster_name}', self.handle_device_zdo),
       aiohttp.web.post('/api/zigbee/device/{device}/zcl/profile/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_device_profile_zcl),
       aiohttp.web.post('/api/zigbee/device/{device}/zcl/cluster/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_device_cluster_zcl),
@@ -73,6 +72,14 @@ class ZigBeePlugin(HazardPlugin):
     device = self.get_device_from_request(request)
     device.update_from_json(data)
     self._save()
+    return aiohttp.web.json_response(device.to_json())
+
+  async def handle_device_create(self, request):
+    json = await request.json()
+    device = self.get_device_from_request(request)
+    thing = self._hazard.create_thing(json['type'])
+    await thing.create_from_device(device)
+    self._hazard.save()
     return aiohttp.web.json_response(device.to_json())
 
   def get_device_from_request(self, request):

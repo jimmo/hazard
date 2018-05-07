@@ -6,7 +6,7 @@
     </li>
     <li>
       <div onclick={toggle}>Endpoints</div>
-      <ul hide={hide}>
+      <ul show_endpoints={show_endpoints}>
         <li each={endpoint in endpoints}>
           {endpoint.profile.name} / {endpoint.endpoint}
           <ul>
@@ -20,22 +20,38 @@
         </li>
       </ul>
     </li>
+    <li>
+      <select id="thing-types">
+        <option each="{thing in thing_types}" value="{thing.type}">{thing.type}</option>
+      </select>
+      <button onclick="{create}">Create</button>
+    </li>
   </ul>
   <script>
    this.endpoints = [];
-   this.hide = true;
+   this.show_endpoints = true;
+   this.thing_types = [];
 
-   this.update_name = async function(e) {
+   this.on('mount', async function() {
+     this.thing_types = await loadThingTypes();
+     this.update();
+   });
+
+   async update_name(e) {
      await renameDevice(opts.device, e.target.value);
    };
 
-   this.toggle = async function() {
-     if (this.hide) {
+   async toggle() {
+     if (this.show_endpoints) {
        this.endpoints = await loadEndpoints(opts.device);
        this.update();
      }
-     this.hide = !this.hide;
+     this.show_endpoints = !this.show_endpoints;
      this.update();
    };
+
+   async create() {
+     await createThingFromDevice(opts.device, this.root.querySelector('#thing-types').value);
+   }
   </script>
 </zigbee-device>

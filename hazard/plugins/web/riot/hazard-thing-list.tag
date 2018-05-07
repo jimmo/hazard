@@ -391,7 +391,7 @@
        let r = 0 + i * 50;
        let g = 128;
        let b = 255 - i*50;
-       temps.push({'temp': i/5, 'style': {'color': 'rgb(' + r + ',' + g + ',' + b + ')'}});
+       temps.push({'temp': 10000 - i*2200, 'style': {'color': 'rgb(' + r + ',' + g + ',' + b + ')'}});
      }
      return temps;
    }

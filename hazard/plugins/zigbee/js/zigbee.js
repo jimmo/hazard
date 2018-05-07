@@ -91,3 +91,16 @@ async function loadEndpoints(device) {
   }
   return endpoints;
 }
+
+async function createThingFromDevice(device, thingType) {
+  let response = await fetch('/api/zigbee/device/' + device.addr64 + '/create', {
+    method: 'POST',
+    body: JSON.stringify({
+      'type': thingType,
+    }),
+    headers: new Headers({
+      'Content-Type': 'application/json'
+    })
+  });
+  return await response.json();
+}

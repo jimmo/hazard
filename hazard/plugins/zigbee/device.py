@@ -5,14 +5,19 @@ import zcl.spec
 
 
 class ZigBeeDevice():
-  def __init__(self, network, addr64, addr16, name=''):
+  def __init__(self, network, addr64=0, addr16=0, name=''):
     self._network = network
     self._addr64 = addr64
     self._addr16 = addr16
     self._name = name or 'Unknown {}'.format(self.addr64hex())
-    self._network._zigbee_module.set_device_handler(self._addr64, self._on_frame)
+    if self._addr64:
+      self._network._module.set_device_handler(self._addr64, self._on_frame)
     self._seq = 1
     self._inflight = {}
+    self._on_zcl_callback = None
+
+  def register_zcl(self, callback):
+    self._on_zcl_callback = callback
 
   def _on_frame(self, source_endpoint, dest_endpoint, cluster, profile, data):
     #print('Received frame from device', source_endpoint, dest_endpoint, cluster, profile, data)
@@ -35,8 +40,8 @@ class ZigBeeDevice():
     cluster_name, seq, command_type, command_name, kwargs = zcl.spec.decode_zcl(cluster, data)
     if seq in self._inflight:
       self._inflight[seq].set_result((command_name, kwargs,))
-    if self._addr64 == 0x137a000001385b:
-      asyncio.get_event_loop().create_task(self._network.zcl_cluster_group(1234, zcl.spec.Profile.HOME_AUTOMATION, 3, 'onoff', 'toggle'))
+    elif self._on_zcl:
+      asyncio.get_event_loop().create_task(self._on_zcl_callback(source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs))
 
   def _next_seq(self):
     seq = self._seq
@@ -50,7 +55,7 @@ class ZigBeeDevice():
     f = asyncio.Future()
     self._inflight[seq] = f
     #print(hex(seq))
-    result = await self._network._zigbee_module.unicast(self._addr64, self._addr16, source_endpoint, dest_endpoint, cluster, profile, data)
+    result = await self._network._module.unicast(self._addr64, self._addr16, source_endpoint, dest_endpoint, cluster, profile, data)
     if not result:
       f.cancel()
       raise ZigBeeDeliveryFailure()
@@ -97,9 +102,11 @@ class ZigBeeDevice():
       'name': self._name,
     }
 
-  @classmethod
-  def from_json(cls, network, device_config):
-    return ZigBeeDevice(network, int(device_config['addr64'], 16), device_config['addr16'], device_config.get('name', ''))
+  def load_json(self, device_config):
+    self._addr64 = int(device_config['addr64'], 16)
+    self._addr16 = device_config['addr16']
+    self._name = device_config.get('name', '')
+    self._network._module.set_device_handler(self._addr64, self._on_frame)
 
   def update_from_json(self, device_config):
     if self._addr64 != int(device_config['addr64'], 16):

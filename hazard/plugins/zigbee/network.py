@@ -7,22 +7,18 @@ from hazard.plugins.zigbee.device import ZigBeeDevice
 class ZigBeeNetwork():
   def __init__(self, module):
     self._module = module
-    if self._module:
-      self._module.set_unknown_device_handler(self._on_unknown_device_frame)
+    self._module.set_unknown_device_handler(self._on_unknown_device_frame)
     self._devices = {}
 
   def to_json(self):
-    print('network to json')
-    print({
-      'devices': [d.to_json() for d in self._devices.values()]
-    })
     return {
       'devices': [d.to_json() for d in self._devices.values()]
     }
 
   def load_json(self, json):
     for device_config in json.get('devices', []):
-      device = ZigBeeDevice.from_json(self, device_config)
+      device = ZigBeeDevice(self)
+      device.load_json(device_config)
       self._devices[device._addr64] = device
 
   def _save(self):
@@ -38,8 +34,10 @@ class ZigBeeNetwork():
     return self._devices.values()
 
   def find_device(self, addr64):
+    print('find device', addr64)
     if isinstance(addr64, str):
       addr64 = int(addr64, 16)
+      print('-->', addr64)
     return self._devices[addr64]
 
   async def _send_group(self, group_addr16, seq, source_endpoint, dest_endpoint, cluster, profile, data, timeout):

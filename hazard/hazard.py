@@ -1,7 +1,7 @@
 import aiohttp.web
 import json
 
-from hazard.thing import create_thing
+from hazard.thing import create_thing, create_thing_from_json
 import hazard.things
 
 from hazard.plugin import create_plugin
@@ -13,6 +13,7 @@ class Hazard:
     self._plugins = {}
     self._zones = {}
     self._things = {}
+    self._seq = 10
 
   def load(self):
     #try:
@@ -26,7 +27,8 @@ class Hazard:
         print('Zone: {}'.format(z))
       for t in config.get('things', []):
         print('Thing: {}'.format(t))
-        t = create_thing(t, self)
+        t = create_thing_from_json(t, self)
+        self._seq = max(t.id() + 1, self._seq)
         self._things[t.id()] = t
     #except FileNotFoundError:
     #  pass
@@ -40,37 +42,37 @@ class Hazard:
       print('Creating default web plugin')
       self._plugins['WebPlugin'] = hazard.plugins.WebPlugin(self)
 
-    if 1 not in self._things:
-      s = hazard.things.Switch(self)
-      s._id = 1
-      s._name = 'Switch 1'
-      s.add_button('print("a")')
-      s.add_button('print("b")')
-      s.add_button('print("c")')
-      self._things[s.id()] = s
+    # if 1 not in self._things:
+    #   s = hazard.things.Switch(self)
+    #   s._id = 1
+    #   s._name = 'Switch 1'
+    #   #s.add_button('print("a")')
+    #   #s.add_button('print("b")')
+    #   #s.add_button('print("c")')
+    #   self._things[s.id()] = s
 
-    if 2 not in self._things:
-      l1 = hazard.things.Light(self)
-      l1._id = 2
-      l1._name = 'Light 1'
-      self._things[l1.id()] = l1
+    # if 2 not in self._things:
+    #   l1 = hazard.things.Light(self)
+    #   l1._id = 2
+    #   l1._name = 'Light 1'
+    #   self._things[l1.id()] = l1
 
-    if 3 not in self._things:
-      l2 = hazard.things.Light(self)
-      l2._id = 3
-      l2._name = 'Light 2'
-      self._things[l2.id()] = l2
+    # if 3 not in self._things:
+    #   l2 = hazard.things.Light(self)
+    #   l2._id = 3
+    #   l2._name = 'Light 2'
+    #   self._things[l2.id()] = l2
 
-    if 4 not in self._things:
-      g1 = hazard.things.LightGroup(self)
-      g1._id = 4
-      g1._name = 'Group 1'
-      self._things[g1.id()] = g1
+    # if 4 not in self._things:
+    #   g1 = hazard.things.LightGroup(self)
+    #   g1._id = 4
+    #   g1._name = 'Group 1'
+    #   self._things[g1.id()] = g1
 
-    if 5 not in self._things:
-      zl = hazard.plugins.zigbee.things.ZigBeeLight(self)
+    # if 5 not in self._things:
+    #   zl = hazard.plugins.zigbee.things.ZigBeeLight(self)
 
-    self.save()
+    #self.save()
 
   def save(self):
     with open('/home/jimmo/.hazard', 'w') as f:
@@ -88,7 +90,9 @@ class Hazard:
       json.dump(config, f, indent=2)
 
   def find_plugin(self, cls):
-    return self._plugins[cls.__name]
+    if not isinstance(cls, str):
+      cls = cls.__name__
+    return self._plugins[cls]
 
   def find_zone(self, name):
     return None
@@ -98,6 +102,13 @@ class Hazard:
       if t.name() == name:
         return t
     raise ValueError('Thing "{}" not found'.format(name))
+
+  def create_thing(self, cls):
+    thing = create_thing(cls, self)
+    thing._id = self._seq
+    self._seq += 1
+    self._things[thing.id()] = thing
+    return thing
 
   def get_routes(self):
     return [

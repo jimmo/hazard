@@ -27,6 +27,16 @@ async function thingSave(thing) {
   return await response.json();
 }
 
+async function loadThingTypes() {
+  if (loadThingTypes.__cached) {
+    return loadThingTypes.__cached;
+  }
+  let response = await fetch('/api/rest/thing/types');
+  let list = await response.json();
+  loadThingTypes.__cached = list;
+  return list;
+}
+
 function sortHelper() {
   const keys = arguments;
   return function(a, b) {

@@ -9,7 +9,7 @@ class ZigBeeSwitchButton(SwitchButton):
 
   async def _on_zcl(self, cluster_name, command_type, command_name, **kwargs):
     if cluster_name == 'onoff' and command_name == 'toggle':
-      await self.tap()
+      await self.action_tap()
 
   def to_json(self):
     json = super().to_json()

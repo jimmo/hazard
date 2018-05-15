@@ -1,4 +1,10 @@
+import async_timeout
+import asyncio
+
 from hazard.thing import Thing, register_thing
+
+
+DOUBLE_TAP_TIMEOUT = 0.4
 
 
 class SwitchButtonBase:
@@ -44,7 +50,9 @@ class SwitchBase(Thing):
 
   async def action(self, action, data):
     button = self._buttons[data.get('button', 0)]
-    await getattr(button, action)()
+    handler = getattr(button, 'action_' + action, None) or getattr(button, action, None)
+    if handler:
+      await handler()
 
 
 class SwitchButton(SwitchButtonBase):
@@ -54,6 +62,27 @@ class SwitchButton(SwitchButtonBase):
       'tap': '',
       'double_tap': '',
     }
+    self._waiting_for_double = None
+
+  async def action_tap(self):
+    if not self._code['double_tap']:
+      return await self.tap()
+
+    if self._waiting_for_double:
+      self._waiting_for_double.set_result(True)
+      await self.double_tap()
+      return
+
+    self._waiting_for_double = asyncio.Future()
+
+    try:
+      async with async_timeout.timeout(DOUBLE_TAP_TIMEOUT):
+        await self._waiting_for_double
+    except asyncio.TimeoutError:
+      await self.tap()
+    finally:
+      self._waiting_for_double.cancel()
+      self._waiting_for_double = None
 
   async def tap(self):
     self._switch.execute(self._code['tap'])

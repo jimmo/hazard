@@ -38,9 +38,9 @@ class Hazard:
     if 'RestPlugin' not in self._plugins:
       print('Creating default rest plugin')
       self._plugins['RestPlugin'] = hazard.plugins.RestPlugin(self)
-    if 'WebPlugin' not in self._plugins:
-      print('Creating default web plugin')
-      self._plugins['WebPlugin'] = hazard.plugins.WebPlugin(self)
+    if 'AppPlugin' not in self._plugins:
+      print('Creating default app plugin')
+      self._plugins['AppPlugin'] = hazard.plugins.AppPlugin(self)
 
     # if 1 not in self._things:
     #   s = hazard.things.Switch(self)
@@ -112,16 +112,5 @@ class Hazard:
 
   def get_routes(self):
     return [
-      aiohttp.web.get('/js/{plugin}/{file}.js', self.handle_js),
-      aiohttp.web.get('/css/{plugin}/{file}.css', self.handle_css),
-      aiohttp.web.get('/riot/{plugin}/{file}.tag', self.handle_riot),
     ] + sum([p.get_routes() for p in self._plugins.values()], [])
 
-  async def handle_js(self, request):
-    return aiohttp.web.FileResponse('hazard/plugins/{}/js/{}.js'.format(request.match_info['plugin'], request.match_info['file']))
-
-  async def handle_css(self, request):
-    return aiohttp.web.FileResponse('hazard/plugins/{}/css/{}.css'.format(request.match_info['plugin'], request.match_info['file']))
-
-  async def handle_riot(self, request):
-    return aiohttp.web.FileResponse('hazard/plugins/{}/riot/{}.tag'.format(request.match_info['plugin'], request.match_info['file']))

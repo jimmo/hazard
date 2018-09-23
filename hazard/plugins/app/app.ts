@@ -1,24 +1,61 @@
-import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Box } from 'canvas-forms';
+import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Box, Ionicons, FontStyle } from 'canvas-forms';
 import { ZigBeeTree } from './zigbee';
+import { MapView } from './mapview';
+import { ThingList, GroupList } from './thinglist';
+
 
 const form = new Form(new Surface('canvas'));
+Ionicons.load();
 
-const title = form.add(new Label('Hazard'), { y: 0 });
-title.fit = true;
-title.coords.center(CoordAxis.X);
+(async () => {
+  await Ionicons.load();
+  const title = form.add(new Label('Hazard'), { y: 0 });
+  title.setIcon(Ionicons.Alert);
+  title.setStyle(FontStyle.ITALIC);
+  title.fit = true;
+  title.coords.center(CoordAxis.X);
 
+  const tabs = form.add(new ButtonGroup(), { x: 0, h: 40, x2: 0, y2: 0 });
 
-const tabs = form.add(new ButtonGroup(), { x: 10, h: 28, x2: 10, y2: 6 });
-const mapButton = tabs.add(new Button('Map'));
-const groupsButton = tabs.add(new Button('Groups'));
-const actionsButton = tabs.add(new Button('Actions'));
-const zigbeeButton = tabs.add(new Button('ZigBee'));
+  const container = form.add(new Box(), { x: 0, x2: 0 });
+  container.coords.y.align(title.coords.yh);
+  container.coords.yh.align(tabs.coords.y, 0);
 
-const container = form.add(new Box(), { x: 0, y: 30, x2: 0 });
-container.coords.yh.align(tabs.coords.y, -4);
+  const tabButtons: Button[] = [];
+  function addTab(name: string, icon: string, callback: () => void) {
+    const btn = tabs.add(new Button(name));
+    tabButtons.push(btn);
+    btn.border = false;
+    btn.setIcon(icon);
+    btn.click.add(() => {
+      for (const otherBtn of tabButtons) {
+        if (otherBtn !== btn) {
+          otherBtn.setActive(false);
+        }
+      }
+      btn.setActive(true);
+      container.clear();
+      callback();
+    });
+    if (tabs.controls.length === 1) {
+      btn.setActive(true);
+      callback();
+    }
+    return btn;
+  }
 
-
-zigbeeButton.click.add(() => {
-  container.clear();
-  const zigbeeTree = container.add(new ZigBeeTree(), 0, 0, null, null, 0, 0);
-});
+  addTab('Map', Ionicons.Locate, () => {
+    const map = container.add(new MapView(), 0, 0, null, null, 0, 0);
+  });
+  addTab('Things', Ionicons.Bulb, () => {
+    const list = container.add(new ThingList(), 0, 0, null, null, 0, 0);
+  });
+  addTab('Groups', Ionicons.Expand, () => {
+    const list = container.add(new GroupList(), 0, 0, null, null, 0, 0);
+  });
+  addTab('Actions', Ionicons.Flash, () => {
+  });
+  addTab('ZigBee', Ionicons.Hammer, () => {
+    const zigbeeTree = container.add(new ZigBeeTree(), 0, 0, null, null, 0, 0);
+  });
+})();

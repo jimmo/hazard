@@ -34,7 +34,7 @@ class ThingBase:
   def load_json(self, json):
     self._id = json.get('id', None)
     self._name = json.get('name', '(unknown)')
-    self._zone = self._hazard.find_zone(json.get('zone', None))
+    self._zone = json.get('zone', 'Home')
     self._location = json.get('location', {'x': 0, 'y': 0})
 
   def to_json(self):
@@ -42,7 +42,7 @@ class ThingBase:
       'type': type(self).__name__,
       'id': self._id,
       'name': self._name,
-      'zone': self._zone.name() if self._zone else None,
+      'zone': self._zone,
       'features': self._features(),
       'location': self._location,
     }

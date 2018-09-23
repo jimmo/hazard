@@ -39,7 +39,6 @@ class ZigBeePlugin(HazardPlugin):
 
   def get_routes(self):
     return [
-      aiohttp.web.get('/zigbee', self.handle_zigbee),
       aiohttp.web.get('/api/zigbee/spec', self.handle_spec),
       aiohttp.web.get('/api/zigbee/status', self.handle_status),
       aiohttp.web.get('/api/zigbee/device/list', self.handle_list_device),
@@ -50,9 +49,6 @@ class ZigBeePlugin(HazardPlugin):
       aiohttp.web.post('/api/zigbee/device/{device}/zcl/cluster/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_device_cluster_zcl),
       aiohttp.web.post('/api/zigbee/group/{group}/zcl/cluster/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_group_cluster_zcl),
     ]
-
-  async def handle_zigbee(self, request):
-    return aiohttp.web.FileResponse('hazard/plugins/zigbee/html/zigbee.html')
 
   async def handle_spec(self, request):
     return aiohttp.web.json_response(zcl.spec.get_json())

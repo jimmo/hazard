@@ -23,8 +23,6 @@ class Hazard:
         print('Plugin: {}'.format(p))
         p = create_plugin(p, self)
         self._plugins[type(p).__name__] = p
-      for z in config.get('zones', []):
-        print('Zone: {}'.format(z))
       for t in config.get('things', []):
         print('Thing: {}'.format(t))
         t = create_thing_from_json(t, self)
@@ -80,9 +78,6 @@ class Hazard:
         'plugins': [
           p.to_json() for p in self._plugins.values()
         ],
-        'zones': [
-          z.to_json() for z in self._zones.values()
-        ],
         'things': [
           t.to_json() for t in self._things.values()
         ],
@@ -93,9 +88,6 @@ class Hazard:
     if not isinstance(cls, str):
       cls = cls.__name__
     return self._plugins[cls]
-
-  def find_zone(self, name):
-    return None
 
   def find_thing(self, name):
     for t in self._things.values():

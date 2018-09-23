@@ -1,4 +1,4 @@
-import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog } from 'canvas-forms';
+import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Ionicons } from 'canvas-forms';
 
 let form: Form = null;
 
@@ -146,7 +146,7 @@ export async function createThingFromDevice(device: ZigBeeDevice, thingType: str
 
 class ZigBeeExplorer extends SimpleTreeNode {
   constructor() {
-    super('ZigBee');
+    super('ZigBee', Ionicons.Hammer);
   }
 
   async treeChildren(): Promise<TreeNode[]> {

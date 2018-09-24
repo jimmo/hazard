@@ -8,8 +8,13 @@ class ZigBeeSwitchButton(SwitchButton):
     self._endpoint = 1
 
   async def _on_zcl(self, cluster_name, command_type, command_name, **kwargs):
+    print(cluster_name, command_name)
     if cluster_name == 'onoff' and command_name == 'toggle':
       await self.action_tap()
+    elif cluster_name == 'onoff' and command_name == 'on':
+      await self.action_on()
+    elif cluster_name == 'onoff' and command_name in ('off', 'off_with_effect',):
+      await self.action_off()
 
   def to_json(self):
     json = super().to_json()
@@ -40,13 +45,13 @@ class ZigBeeSwitch(Switch):
     self._device.register_zcl(self._on_zcl)
     self._name = device._name
 
-    active_eps = await device.zdo('active_ep', addr16=device._addr16)
-    for endpoint in active_eps['active_eps']:
-      desc = await device.zdo('simple_desc', addr16=device._addr16, endpoint=endpoint)
-      desc = desc['simple_descriptors'][0]
-      btn = self._create_button()
-      btn._endpoint = desc['endpoint']
-      self._buttons.append(btn)
+    # active_eps = await device.zdo('active_ep', addr16=device._addr16)
+    # for endpoint in active_eps['active_eps']:
+    #   desc = await device.zdo('simple_desc', addr16=device._addr16, endpoint=endpoint)
+    #   desc = desc['simple_descriptors'][0]
+    #   btn = self._create_button()
+    #   btn._endpoint = desc['endpoint']
+    #   self._buttons.append(btn)
 
   def to_json(self):
     json = super().to_json()

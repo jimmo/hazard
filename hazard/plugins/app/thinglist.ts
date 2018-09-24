@@ -1,4 +1,4 @@
-import { List, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, FontStyle, FocusTextBox, Control } from "canvas-forms";
+import { List, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, FontStyle, FocusTextBox, Control, TextBox, TextAlign } from "canvas-forms";
 import { Thing } from "./hazard";
 import { sortBy } from "./utils";
 
@@ -125,8 +125,9 @@ export class ThingDialog extends Dialog {
   constructor(readonly thing: Thing) {
     super();
 
-    const title = this.add(new Label(thing.name), { x: 0, y: 10, x2: 0 });
-    title.center = true;
+    const title = this.add(new FocusTextBox(thing.name), { x: 0, y: 10, x2: 0 });
+    title.border = false;
+    title.align = TextAlign.CENTER;
     title.addStyle(FontStyle.BOLD);
 
     const list = this.add(new List<Thing>(ThingAction), { x: 0, x2: 0, y: 40, y2: 50 });
@@ -171,7 +172,7 @@ class ThingListItem extends ListItem<Thing> {
     this.border = true;
 
     const l = this.add(new Label(thing.name), { x: 3, y: 3, x2: 3, y2: 3 });
-    l.center = true;
+    l.align = TextAlign.CENTER;
 
     this.mousedown.add((ev) => {
       ev.capture();

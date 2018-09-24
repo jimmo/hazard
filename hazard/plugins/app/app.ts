@@ -10,8 +10,8 @@ Ionicons.load();
 (async () => {
   await Ionicons.load();
   const title = form.add(new Label('Hazard'), { y: 0 });
-  title.setIcon(Ionicons.Alert);
-  title.setStyle(FontStyle.ITALIC);
+  title.icon = Ionicons.Alert;
+  title.style = FontStyle.ITALIC;
   title.fit = true;
   title.coords.center(CoordAxis.X);
 
@@ -26,7 +26,7 @@ Ionicons.load();
     const btn = tabs.add(new Button(name));
     tabButtons.push(btn);
     btn.border = false;
-    btn.setIcon(icon);
+    btn.icon = icon;
     btn.click.add(() => {
       for (const otherBtn of tabButtons) {
         if (otherBtn !== btn) {

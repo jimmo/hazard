@@ -27,8 +27,8 @@ class ThingBase:
   def __init__(self, hazard):
     self._hazard = hazard
     self._id = None
-    self._name = None
-    self._zone = None
+    self._name = '(unknown)'
+    self._zone = 'Home'
     self._location = { 'x': 0, 'y': 0 }
 
   def load_json(self, json):

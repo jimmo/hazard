@@ -7,8 +7,8 @@ class MapThing extends Control {
     super();
 
     const l = this.add(new Label(), 0, 0);
-    l.setIcon(Ionicons.Bulb);
-    l.setFont(null, 40);
+    l.icon = Ionicons.Bulb;
+    l.fontSize = 40;
     l.fit = true;
 
     this.mousedown.add((ev) => {
@@ -83,7 +83,7 @@ export class MapView extends Control {
       mapThing.coords.w.fit();
       mapThing.coords.h.fit();
       if (this.edit.checked) {
-        const grabber = this.container.add(new Grabber(thing.location.x - 20, thing.location.y - 20));
+        const grabber = this.container.add(new Grabber(Math.max(0, thing.location.x - 20), Math.max(0, thing.location.y - 20)));
         grabber.setSnap(CoordAxis.X, 20);
         grabber.setSnap(CoordAxis.Y, 20);
         grabber.coords.size(20, 20);

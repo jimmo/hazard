@@ -1,4 +1,4 @@
-import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Ionicons } from 'canvas-forms';
+import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Ionicons, MenuItems, PromptDialog, MenuItem, MenuSeparatorItem } from 'canvas-forms';
 
 let form: Form = null;
 
@@ -160,11 +160,40 @@ class ZigBeeDeviceNode extends SimpleTreeNode {
     super(device.name);
   }
 
+  treeText() {
+    return this.device.name;
+  }
+
   async treeChildren(): Promise<TreeNode[]> {
     return [
       new ZigBeeDeviceEndpointsNode(this.device),
       new ZigBeeDeviceZdosNode(this.device),
     ];
+  }
+
+  async treeMenu(): Promise<MenuItems> {
+    const rename = new MenuItem('Rename');
+    rename.click.add(async () => {
+      const result = await new PromptDialog('Rename ZigBee device', this.device.name).modal(form);
+      if (result) {
+        this.device.name = result;
+        form.repaint();
+        renameDevice(this.device, result);
+      }
+    });
+
+    const items = [
+      rename,
+      new MenuSeparatorItem(),
+    ];
+
+    const create = new MenuItem('Create');
+    create.click.add(async () => {
+      createThingFromDevice(this.device, 'ZigBeeSwitch');
+    });
+    items.push(create);
+
+    return items;
   }
 }
 
@@ -302,7 +331,7 @@ class ZigBeeCommandDialog extends Dialog {
 
     send.click.add(async () => {
       const response = await this.callback(JSON.parse(req.text));
-      resp.setText(JSON.stringify(response, null, ' '));
+      resp.text = JSON.stringify(response, null, ' ');
 
     });
 
@@ -350,6 +379,7 @@ export class ZigBeeTree extends Tree {
   added() {
     super.added();
     form = this.form();
-    this.addRoot(new ZigBeeExplorer());
+    const root = this.addRoot(new ZigBeeExplorer());
+    root.open();
   }
 }

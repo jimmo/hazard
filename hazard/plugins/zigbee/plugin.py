@@ -67,7 +67,7 @@ class ZigBeePlugin(HazardPlugin):
     data = await request.json()
     device = self.get_device_from_request(request)
     device.update_from_json(data)
-    self._save()
+    self._hazard.save()
     return aiohttp.web.json_response(device.to_json())
 
   async def handle_device_create(self, request):

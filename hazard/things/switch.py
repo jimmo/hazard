@@ -64,6 +64,12 @@ class SwitchButton(SwitchButtonBase):
     }
     self._waiting_for_double = None
 
+  async def action_on(self):
+    return await self.tap()
+    
+  async def action_off(self):
+    return await self.double_tap()
+    
   async def action_tap(self):
     if not self._code['double_tap']:
       return await self.tap()

@@ -40,7 +40,7 @@ class ZigBeeDevice():
     cluster_name, seq, command_type, command_name, kwargs = zcl.spec.decode_zcl(cluster, data)
     if seq in self._inflight:
       self._inflight[seq].set_result((command_name, kwargs,))
-    elif self._on_zcl:
+    elif self._on_zcl and self._on_zcl_callback:
       asyncio.get_event_loop().create_task(self._on_zcl_callback(source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs))
 
   def _next_seq(self):

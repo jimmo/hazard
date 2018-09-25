@@ -15,8 +15,8 @@ class LightBase:
   async def toggle(self):
     print('toggle', self._name)
 
-  async def level(self, level):
-    print('level', self._name, level)
+  async def level(self, level=None, delta=None):
+    print('level', self._name, level, delta)
 
   async def hue(self, hue):
     pass

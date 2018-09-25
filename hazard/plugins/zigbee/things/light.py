@@ -39,10 +39,13 @@ class ZigBeeLight(Light):
       return
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'toggle', timeout=5)
 
-  async def level(self, level):
+  async def level(self, level=None, delta=None):
     if not self._device:
       return
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level', timeout=5, level=int(level*255), time=TRANSITION_TIME)
+    if level is not None:
+      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(level*255), time=TRANSITION_TIME)
+    if delta is not None:
+      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'step_on_off', timeout=5, mode=0 if delta > 0 else 1, size=int(max(0, min(1, abs(delta)))*255), time=TRANSITION_TIME)
 
   async def hue(self, hue):
     if not self._device:
@@ -99,10 +102,13 @@ class ZigBeeLightGroup(LightGroup):
       return
     await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'toggle', timeout=5)
 
-  async def level(self, level):
+  async def level(self, level=None, delta=None):
     if not self._group:
       return
-    await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level', timeout=5, level=int(level*255), time=TRANSITION_TIME)
+    if level is not None:
+      await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level', timeout=5, level=int(level*255), time=TRANSITION_TIME)
+    if delta is not None:
+      await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'step', timeout=5, mode=0 if delta > 0 else 1, size=int(max(0, min(1, abs(delta)))*255), time=TRANSITION_TIME)
 
   async def hue(self, hue):
     if not self._group:

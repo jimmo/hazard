@@ -7,7 +7,15 @@ class MapThing extends Control {
     super();
 
     const l = this.add(new Label(), 0, 0);
-    l.icon = Ionicons.Bulb;
+    if (thing.hasFeature('group')) {
+      l.icon = Ionicons.Expand;
+    } else if (thing.hasFeature('light')) {
+      l.icon = Ionicons.Bulb;
+    } else if (thing.hasFeature('switch')) {
+      l.icon = Ionicons.Switch;
+    } else {
+      l.text = thing.name;
+    }
     l.fontSize = 40;
     l.fit = true;
 

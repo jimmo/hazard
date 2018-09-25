@@ -1,5 +1,5 @@
-import { List, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, FontStyle, FocusTextBox, Control, TextBox, TextAlign } from "canvas-forms";
-import { Thing } from "./hazard";
+import { List, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, FontStyle, FocusTextBox, Control, TextBox, TextAlign, MenuItems, MenuItem, PromptDialog } from "canvas-forms";
+import { Thing, Switch, Light, SwitchButton } from "./hazard";
 import { sortBy } from "./utils";
 
 class ThingAction extends ListItem<Thing> {
@@ -14,7 +14,7 @@ class ThingAction extends ListItem<Thing> {
 }
 
 class ThingActionOnOff extends ThingAction {
-  constructor(thing: Thing) {
+  constructor(thing: Light) {
     super(thing);
 
     const group = this.add(new ButtonGroup(), { x: 30, y: 10, x2: 30 });
@@ -35,7 +35,7 @@ class ThingActionOnOff extends ThingAction {
 }
 
 class ThingActionLightLevel extends ThingAction {
-  constructor(thing: Thing) {
+  constructor(thing: Light) {
     super(thing);
 
     this.add(new Label('Level'), 30, 10);
@@ -49,7 +49,7 @@ class ThingActionLightLevel extends ThingAction {
 }
 
 class ThingActionColorTemperature extends ThingAction {
-  constructor(thing: Thing) {
+  constructor(thing: Light) {
     super(thing);
 
     this.add(new Label('Temp'), 30, 10);
@@ -63,7 +63,7 @@ class ThingActionColorTemperature extends ThingAction {
 }
 
 class ThingActionColor extends ThingAction {
-  constructor(thing: Thing) {
+  constructor(thing: Light) {
     super(thing);
 
     this.add(new Label('Colour'), 30, 10);
@@ -73,51 +73,90 @@ class ThingActionColor extends ThingAction {
   }
 }
 
-class ThingActionSwitch extends ThingAction {
-  constructor(thing: Thing) {
-    super(thing);
+class ThingActionSwitchButtonCodeDialog extends Dialog {
+  constructor(readonly thing: Switch, readonly button: SwitchButton) {
+    super();
 
-    const group = this.add(new ButtonGroup(), { x: 30, y: 10, x2: 100, h: 28 });
+    let l = this.add(new Label('Single'), 10, 10);
+    l.fit = true;
+    const single = this.add(new TextBox(button.single), { x: 10, y: 40, x2: 10, h: 120 });
+    single.fontName = 'monospace';
+    single.multiline = true;
 
-    for (let i = 0; i < thing.buttons.length; ++i) {
-      const btn = group.add(new Button((i + 1).toString(), Ionicons.FingerPrint));
-      const index = i;
-      btn.click.add(() => {
-        thing.action('tap', {
-          button: index,
-        });
+    l = this.add(new Label('Double'), 10, 180);
+    l.fit = true;
+    const double = this.add(new TextBox(button.double), { x: 10, y: 210, x2: 10, h: 120 });
+    double.fontName = 'monospace';
+    double.multiline = true;
+
+    this.add(new Button('Cancel'), { x2: 20, y2: 20 }).click.add(() => {
+      this.close(null);
+    });
+    this.add(new Button('OK'), { x2: 190, y2: 20 }).click.add(() => {
+      this.button.single = single.text;
+      this.button.double = double.text;
+      this.thing.save();
+      this.close(null);
+    });
+  }
+
+  defaultConstraints() {
+    // Override Dialog default which centers a fixed width/height dialog in the form.
+    this.coords.x.set(20);
+    this.coords.x2.set(20);
+    this.coords.h.set(450)
+    this.coords.center(CoordAxis.Y);
+  }
+
+}
+
+class ThingActionSwitchButton extends Button {
+  constructor(readonly thing: Switch, readonly button: SwitchButton) {
+    super(button.name, Ionicons.FingerPrint);
+    this.click.add(() => {
+      thing.action('invoke', {
+        code: button.code,
       });
-    }
+    });
+  }
 
-    const edit = this.add(new Button('', Ionicons.Build), { x2: 30, y: 10, w: 40 });
-    edit.click.add(() => {
-      if (this.controls.length > 2) {
-        edit.setActive(false);
-        while (this.controls.length > 2) {
-          this.controls[this.controls.length - 1].remove();
-        }
-      } else {
-        edit.setActive(true);
-        let prev: Control = group;
-        for (let i = 0; i < thing.buttons.length; ++i) {
-          const labelTap = this.add(new Label((i + 1) + ' - Tap'), 30);
-          labelTap.fit = true;
-          labelTap.coords.y.align(prev.coords.yh, 10);
-          const codeTap = this.add(new FocusTextBox(thing.buttons[i].code.tap), 30, null, null, 140, 30);
-          codeTap.multiline = true;
-          codeTap.setFont('monospace');
-          codeTap.coords.y.align(labelTap.coords.yh, 10);
-          const labelDbl = this.add(new Label((i + 1) + ' - Double Tap'), 30, null);
-          labelDbl.coords.y.align(codeTap.coords.yh, 10);
-          labelDbl.fit = true;
-          const codeDbl = this.add(new FocusTextBox(thing.buttons[i].code.doubleTap), 30, null, null, 140, 30);
-          codeDbl.multiline = true;
-          codeDbl.setFont('monospace');
-          codeDbl.coords.y.align(labelDbl.coords.yh, 10);
-          prev = codeDbl;
-        }
+  protected async contextMenu(): Promise<MenuItems> {
+    const rename = new MenuItem('Rename');
+    rename.click.add(async () => {
+      const result = await new PromptDialog('Button name:', this.button.name).modal(this.form());
+      if (result) {
+        this.button.name = result;
+        this.thing.save();
       }
     });
+
+    const edit = new MenuItem('Edit code');
+    edit.click.add(async () => {
+      await new ThingActionSwitchButtonCodeDialog(this.thing, this.button).modal(this.form());
+    });
+
+    return [
+      rename,
+      edit,
+    ]
+  }
+}
+
+class ThingActionSwitch extends ThingAction {
+  constructor(thing: Switch) {
+    super(thing);
+
+    let prev: Button = null;
+
+    for (const switchButton of thing.buttons) {
+      const btn = this.add(new ThingActionSwitchButton(thing, switchButton), { x: 30, x2: 30, h: 100 });
+      if (prev) {
+        btn.coords.y.align(prev.coords.yh, 10);
+      } else {
+        btn.coords.y.set(10);
+      }
+      prev = btn;
+    }
   }
 }
 
@@ -129,24 +168,28 @@ export class ThingDialog extends Dialog {
     title.border = false;
     title.align = TextAlign.CENTER;
     title.addStyle(FontStyle.BOLD);
+    title.change.add(async () => {
+      this.thing.name = title.text;
+      await this.thing.save();
+    }, 1000);
 
     const list = this.add(new List<Thing>(ThingAction), { x: 0, x2: 0, y: 40, y2: 50 });
     list.border = false;
 
     if (thing.hasFeature('light')) {
-      list.addItem(thing, ThingActionOnOff);
+      list.addItem(thing as Light, ThingActionOnOff);
     }
     if (thing.hasFeature('light-level')) {
-      list.addItem(thing, ThingActionLightLevel);
+      list.addItem(thing as Light, ThingActionLightLevel);
     }
     if (thing.hasFeature('light-temperature')) {
-      list.addItem(thing, ThingActionColorTemperature);
+      list.addItem(thing as Light, ThingActionColorTemperature);
     }
     if (thing.hasFeature('light-color')) {
-      list.addItem(thing, ThingActionColor);
+      list.addItem(thing as Light, ThingActionColor);
     }
     if (thing.hasFeature('switch')) {
-      list.addItem(thing, ThingActionSwitch);
+      list.addItem(thing as Switch, ThingActionSwitch);
     }
 
     const close = this.add(new Button('Close'), { y2: 20, w: 100 });

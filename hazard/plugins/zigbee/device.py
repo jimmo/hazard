@@ -29,14 +29,14 @@ class ZigBeeDevice():
   def _on_zdo(self, cluster, data):
     #print('zdo', self._addr64, self._addr16, cluster, data)
     cluster_name, seq, kwargs = zcl.spec.decode_zdo(cluster, data)
-    print('zdo', cluster_name, seq, kwargs)
+    #print('zdo', cluster_name, seq, kwargs)
 
     if seq in self._inflight:
-      print('  delivering future')
+      #print('  delivering future')
       self._inflight[seq].set_result(kwargs)
 
   def _on_zcl(self, source_endpoint, dest_endpoint, cluster, profile, data):
-    print('zcl', source_endpoint, dest_endpoint, cluster, profile, data)
+    #print('zcl', source_endpoint, dest_endpoint, cluster, profile, data)
     cluster_name, seq, command_type, command_name, kwargs = zcl.spec.decode_zcl(cluster, data)
     if seq in self._inflight:
       self._inflight[seq].set_result((command_name, kwargs,))
@@ -97,6 +97,7 @@ class ZigBeeDevice():
 
   def to_json(self):
     return {
+      'type': type(self).__name__,
       'addr64': self.addr64hex(),
       'addr16': self._addr16,
       'name': self._name,

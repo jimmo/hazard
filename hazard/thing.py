@@ -23,6 +23,23 @@ def get_thing_types():
   return THINGS.keys()
 
 
+class ThingLocation:
+  def __init__(self):
+    self.x = 0
+    self.y = 0
+
+  def to_json(self):
+    return {
+      'type': type(self).__name__,
+      'x': self.x,
+      'y': self.y,
+    }
+
+  def load_json(self, json):
+    self.x = json.get('x', 0)
+    self.y = json.get('y', 0)
+
+
 class ThingBase:
   def __init__(self, hazard):
     self._hazard = hazard
@@ -40,6 +57,7 @@ class ThingBase:
   def to_json(self):
     return {
       'type': type(self).__name__,
+      'json_type': 'Thing',
       'id': self._id,
       'name': self._name,
       'zone': self._zone,
@@ -60,8 +78,10 @@ class ThingBase:
     return []
 
   def execute(self, code):
+    if not code:
+      return
+    
     code = 'async def __code():\n' + '\n'.join('  ' + line for line in code.split('\n')) + '\n\nimport asyncio\nasyncio.get_event_loop().create_task(__code())\n'
-    print(code)
     exec(code, {
       'thing': self._hazard.find_thing,
     }, {
@@ -70,6 +90,9 @@ class ThingBase:
 
   async def action(self, action, data):
     await getattr(self, action)(**data)
+
+  def remove(self):
+    self._hazard.remove_thing(self)
 
 
 class Thing(ThingBase):

@@ -95,6 +95,10 @@ class Hazard:
         return t
     raise ValueError('Thing "{}" not found'.format(name))
 
+  def remove_thing(self, thing):
+    del self._things[thing.id()]
+    self.save()
+
   def create_thing(self, cls):
     thing = create_thing(cls, self)
     thing._id = self._seq

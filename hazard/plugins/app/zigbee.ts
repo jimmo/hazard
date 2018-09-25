@@ -1,59 +1,192 @@
-import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Ionicons, MenuItems, PromptDialog, MenuItem, MenuSeparatorItem } from 'canvas-forms';
+import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Ionicons, MenuItems, PromptDialog, MenuItem, MenuSeparatorItem, StaticTree, ConfirmDialog, MenuHeadingItem } from 'canvas-forms';
+import { Serializer } from './utils';
 
 let form: Form = null;
 
-export interface ZigBeeDevice {
+export class ZigBeeDevice {
   addr64: string;
-  addr16: string;
+  addr16: number;
   name: string;
-}
 
-export interface ZigBeeEndpoint {
+  static async load(): Promise<ZigBeeDevice[]> {
+    let response = await fetch('/api/zigbee/device/list');
+    return Serializer.deserialize(await response.json());
+  }
+
+  async rename(name: string) {
+    this.name = name;
+
+    let response = await fetch('/api/zigbee/device/' + this.addr64, {
+      method: 'POST',
+      body: Serializer.serialize(this),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+
+    return await response.json();
+  }
+
+  async sendZdo(clusterName: string, data: any) {
+    data = data || {};
+    let response = await fetch('/api/zigbee/device/' + this.addr64 + '/zdo/' + clusterName, {
+      method: 'POST',
+      body: Serializer.serialize(data),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return await response.json();
+  }
+
+  async sendZclCluster(endpoint: ZigBeeEndpoint, clusterName: string, commandName: string, data: any) {
+    data = data || {};
+    let response = await fetch('/api/zigbee/device/' + this.addr64 + '/zcl/cluster/' + endpoint.profile.name + '/' + endpoint.endpoint + '/' + clusterName + '/' + commandName, {
+      method: 'POST',
+      body: Serializer.serialize(data),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return await response.json();
+  }
+
+  async loadEndpoints() {
+    let activeEps = await this.sendZdo('active_ep', { 'addr16': this.addr16 });
+    let endpoints = [];
+    for (let ep of activeEps['active_eps']) {
+      let desc = await this.sendZdo('simple_desc', { 'addr16': this.addr16, 'endpoint': ep });
+      desc = desc['simple_descriptors'][0];
+      desc['profile'] = await getProfileById(desc['profile']);
+      endpoints.push(desc);
+    }
+    return endpoints;
+  }
+
+  async createThing(thingType: string) {
+    let response = await fetch('/api/zigbee/device/' + this.addr64 + '/thing', {
+      method: 'POST',
+      body: Serializer.serialize({
+        'type': thingType,
+      }),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return await response.json();
+  }
+}
+Serializer.register(ZigBeeDevice);
+
+export class ZigBeeGroup {
+  addr16: number;
+  name: string;
+
+  static async load(): Promise<ZigBeeGroup[]> {
+    let response = await fetch('/api/zigbee/group/list');
+    return Serializer.deserialize(await response.json());
+  }
+
+  async rename(name: string) {
+    this.name = name;
+
+    let response = await fetch('/api/zigbee/group/' + this.addr16, {
+      method: 'POST',
+      body: Serializer.serialize(this),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+
+    return await response.json();
+  }
+
+  async remove() {
+    let response = await fetch('/api/zigbee/group/' + this.addr16 + '/remove', {
+      method: 'POST',
+      body: Serializer.serialize({
+      }),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+
+    return await response.json();
+  }
+
+
+  async sendZclCluster(endpoint: ZigBeeEndpoint, clusterName: string, commandName: string, data: any) {
+    data = data || {};
+    let response = await fetch('/api/zigbee/group/' + this.addr16 + '/zcl/cluster/' + endpoint.profile.name + '/' + endpoint.endpoint + '/' + clusterName + '/' + commandName, {
+      method: 'POST',
+      body: Serializer.serialize(data),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return await response.json();
+  }
+
+  static async create() {
+    let response = await fetch('/api/zigbee/group/create', {
+      method: 'POST',
+      body: Serializer.serialize({
+      }),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return await response.json();
+  }
+
+  async createThing(thingType: string) {
+    let response = await fetch('/api/zigbee/group/' + this.addr16 + '/thing', {
+      method: 'POST',
+      body: Serializer.serialize({
+        'type': thingType,
+      }),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return await response.json();
+  }
+
+
+}
+Serializer.register(ZigBeeGroup);
+
+export class ZigBeeEndpoint {
   profile: ZigBeeProfile;
   endpoint: number;
   in_clusters: ZigBeeCluster[];
   out_clusters: ZigBeeCluster[];
 }
+Serializer.register(ZigBeeEndpoint);
 
-export interface ZigBeeProfile {
+export class ZigBeeProfile {
   name: string;
 }
+Serializer.register(ZigBeeProfile);
 
-export interface ZigBeeCluster {
+export class ZigBeeCluster {
   name: string;
   cluster: number;
   rx_commands: ZigBeeClusterCommand[];
 }
+Serializer.register(ZigBeeCluster);
 
-export interface ZigBeeClusterCommand {
+export class ZigBeeClusterCommand {
   name: string;
   args: string;
 };
+Serializer.register(ZigBeeClusterCommand);
 
-export interface ZigBeeZdo {
+export class ZigBeeZdo {
   cluster_name: string;
   args: string;
 }
-
-export async function loadDevices(): Promise<ZigBeeDevice[]> {
-  let response = await fetch('/api/zigbee/device/list');
-  let devices = await response.json();
-  return devices;
-}
-
-export async function renameDevice(device: ZigBeeDevice, name: string) {
-  device.name = name;
-
-  let response = await fetch('/api/zigbee/device/' + device.addr64, {
-    method: 'POST',
-    body: JSON.stringify(device),
-    headers: new Headers({
-      'Content-Type': 'application/json'
-    })
-  });
-
-  return await response.json();
-}
+Serializer.register(ZigBeeZdo);
 
 export async function loadStatus() {
   let response = await fetch('/api/zigbee/status');
@@ -81,77 +214,46 @@ export async function getProfileById(profileId: number) {
   return null;
 }
 
-export async function sendZdo(device: ZigBeeDevice, clusterName: string, data: any) {
-  data = data || {};
-  let response = await fetch('/api/zigbee/device/' + device.addr64 + '/zdo/' + clusterName, {
-    method: 'POST',
-    body: JSON.stringify(data),
-    headers: new Headers({
-      'Content-Type': 'application/json'
-    })
-  });
-  return await response.json();
-}
-
-export async function sendZclCluster(device: ZigBeeDevice, endpoint: ZigBeeEndpoint, clusterName: string, commandName: string, data: any) {
-  data = data || {};
-  let response = await fetch('/api/zigbee/device/' + device.addr64 + '/zcl/cluster/' + endpoint.profile.name + '/' + endpoint.endpoint + '/' + clusterName + '/' + commandName, {
-    method: 'POST',
-    body: JSON.stringify(data),
-    headers: new Headers({
-      'Content-Type': 'application/json'
-    })
-  });
-  return await response.json();
-}
-
-export async function sendGroupZclCluster(group: number, endpoint: ZigBeeEndpoint, clusterName: string, commandName: string, data: any) {
-  data = data || {};
-  let response = await fetch('/api/zigbee/group/' + group + '/zcl/cluster/' + endpoint.profile.name + '/' + endpoint.endpoint + '/' + clusterName + '/' + commandName, {
-    method: 'POST',
-    body: JSON.stringify(data),
-    headers: new Headers({
-      'Content-Type': 'application/json'
-    })
-  });
-  return await response.json();
-}
-
-export async function loadEndpoints(device: ZigBeeDevice) {
-  let activeEps = await sendZdo(device, 'active_ep', { 'addr16': device.addr16 });
-  let endpoints = [];
-  for (let ep of activeEps['active_eps']) {
-    let desc = await sendZdo(device, 'simple_desc', { 'addr16': device.addr16, 'endpoint': ep });
-    desc = desc['simple_descriptors'][0];
-    desc['profile'] = await getProfileById(desc['profile']);
-    endpoints.push(desc);
-  }
-  return endpoints;
-}
-
-export async function createThingFromDevice(device: ZigBeeDevice, thingType: string) {
-  let response = await fetch('/api/zigbee/device/' + device.addr64 + '/create', {
-    method: 'POST',
-    body: JSON.stringify({
-      'type': thingType,
-    }),
-    headers: new Headers({
-      'Content-Type': 'application/json'
-    })
-  });
-  return await response.json();
-}
 
 
-
-class ZigBeeExplorer extends SimpleTreeNode {
+class ZigBeeExplorer extends StaticTree {
   constructor() {
     super('ZigBee', Ionicons.Hammer);
+    this.add(new ZigBeeExplorerDevices());
+    this.add(new ZigBeeExplorerGroups());
+  }
+}
+
+class ZigBeeExplorerDevices extends SimpleTreeNode {
+  constructor() {
+    super('Devices');
   }
 
   async treeChildren(): Promise<TreeNode[]> {
-    const devices = await loadDevices();
+    const devices = await ZigBeeDevice.load();
     return devices.map(device => new ZigBeeDeviceNode(device));
+  }
+}
+
+class ZigBeeExplorerGroups extends SimpleTreeNode {
+  constructor() {
+    super('Groups');
+  }
+
+  async treeChildren(): Promise<TreeNode[]> {
+    const groups = await ZigBeeGroup.load();
+    return groups.map(group => new ZigBeeGroupNode(group));
+  }
+
+  async treeMenu(): Promise<MenuItems> {
+    const create = new MenuItem('New group...');
+    create.click.add(async () => {
+      ZigBeeGroup.create();
+    });
+
+    return [
+      create,
+    ];
   }
 }
 
@@ -178,7 +280,7 @@ class ZigBeeDeviceNode extends SimpleTreeNode {
       if (result) {
         this.device.name = result;
         form.repaint();
-        renameDevice(this.device, result);
+        this.device.rename(result);
       }
     });
 
@@ -187,11 +289,17 @@ class ZigBeeDeviceNode extends SimpleTreeNode {
       new MenuSeparatorItem(),
     ];
 
-    const create = new MenuItem('Create');
-    create.click.add(async () => {
-      createThingFromDevice(this.device, 'ZigBeeSwitch');
+    const createLight = new MenuItem('Create as Light');
+    createLight.click.add(async () => {
+      this.device.createThing('ZigBeeLight');
     });
-    items.push(create);
+    items.push(createLight);
+
+    const createSwitch = new MenuItem('Create as Switch');
+    createSwitch.click.add(async () => {
+      this.device.createThing('ZigBeeSwitch');
+    });
+    items.push(createSwitch);
 
     return items;
   }
@@ -203,7 +311,7 @@ class ZigBeeDeviceEndpointsNode extends SimpleTreeNode {
   }
 
   async treeChildren(): Promise<TreeNode[]> {
-    const endpoints = await loadEndpoints(this.device);
+    const endpoints = await this.device.loadEndpoints();
     return endpoints.map(endpoint => new ZigBeeEndpointNode(this.device, endpoint));
   }
 }
@@ -218,6 +326,23 @@ class ZigBeeEndpointNode extends SimpleTreeNode {
       new ZigBeeEndpointClustersNode(this.device, this.endpoint),
       new ZigBeeEndpointBindNode(this.device, this.endpoint),
     ];
+  }
+
+  async treeMenu(): Promise<MenuItems> {
+    const items: MenuItems = [
+      new MenuHeadingItem('Add to group'),
+    ];
+
+    const groups = await ZigBeeGroup.load();
+    for (const group of groups) {
+      const item = new MenuItem(group.name);
+      item.click.add(async () => {
+        await this.device.sendZclCluster(this.endpoint, 'groups', 'add_group', { 'id': group.addr16, 'name': group.name });
+      });
+      items.push(item);
+    }
+
+    return items;
   }
 }
 
@@ -255,7 +380,7 @@ class ZigBeeClusterCommandNode extends SimpleTreeLeafNode {
 
   treeSelect() {
     new ZigBeeCommandDialog(this.device, this.command.args, async (req: any) => {
-      return await sendZclCluster(this.device, this.endpoint, this.cluster.name, this.command.name, req);
+      return await this.device.sendZclCluster(this.endpoint, this.cluster.name, this.command.name, req);
     }).modal(form);
   }
 }
@@ -286,7 +411,7 @@ class ZigBeeBindClusterNode extends SimpleTreeLeafNode {
   async treeSelect() {
     const status = await loadStatus();
 
-    let response = await sendZdo(this.device, 'bind', {
+    let response = await this.device.sendZdo('bind', {
       'src_addr': this.device.addr64,
       'src_ep': this.endpoint.endpoint,
       'cluster': this.cluster.cluster,
@@ -365,8 +490,56 @@ class ZigBeeDeviceZdoNode extends SimpleTreeLeafNode {
 
   treeSelect() {
     new ZigBeeCommandDialog(this.device, this.zdo.args, async (req: any) => {
-      return await sendZdo(this.device, this.zdo.cluster_name, req);
+      return await this.device.sendZdo(this.zdo.cluster_name, req);
     }).modal(form);
+  }
+}
+
+class ZigBeeGroupNode extends SimpleTreeNode {
+  constructor(private readonly group: ZigBeeGroup) {
+    super(group.name + ' / ' + group.addr16);
+  }
+
+  treeText() {
+    return this.group.name + ' / ' + this.group.addr16;
+  }
+
+  treeHasChildren() {
+    return false;
+  }
+
+  async treeMenu(): Promise<MenuItems> {
+    const rename = new MenuItem('Rename');
+    rename.click.add(async () => {
+      const result = await new PromptDialog('Rename ZigBee group', this.group.name).modal(form);
+      if (result) {
+        this.group.name = result;
+        form.repaint();
+        this.group.rename(result);
+      }
+    });
+
+    const remove = new MenuItem('Delete');
+    remove.click.add(async () => {
+      const result = await new ConfirmDialog('Delete ZigBee group?').modal(form);
+      if (result) {
+        this.group.remove();
+      }
+    });
+
+    const items = [
+      rename,
+      remove,
+      new MenuSeparatorItem(),
+    ];
+
+    const create = new MenuItem('Create Light Group');
+    create.click.add(async () => {
+      this.group.createThing('ZigBeeLightGroup');
+    });
+    items.push(create);
+
+    return items;
   }
 }
 

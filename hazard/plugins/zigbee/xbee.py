@@ -143,9 +143,9 @@ class XBeeModule(ZigBeeModule):
       opt |= 0x40
     data = struct.pack('>QHBBHHBB', addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, radius, opt) + data
     response = await self._send_frame(0x11, data)
-    print(response)
+    #print(response)
     sent_addr16, retry_count, delivery_status, discovery_status, = struct.unpack('>HBBB', response)
-    print('tx response', sent_addr16, retry_count, delivery_status, discovery_status)
+    #print('tx response', sent_addr16, retry_count, delivery_status, discovery_status)
     #return True
     return delivery_status == 0
 
@@ -188,7 +188,7 @@ class XBeeModule(ZigBeeModule):
 
     f = asyncio.Future()
     self._inflight[frame_id] = f
-    print('frame', data)
+    #print('frame', data)
     self._protocol._transport.write(data)
     try:
       async with async_timeout.timeout(timeout):
@@ -219,8 +219,7 @@ class XBeeModule(ZigBeeModule):
       for i in range(50):
         await asyncio.sleep(0.1)
       try:
-        print('Ping XBee module')
-        print('OP response', hex(await self._send_at('OP')))
+        print('Ping response', hex(await self._send_at('OP')))
       except ZigBeeTimeout:
-        print('timeout')
+        print('Ping timeout')
       #await self._tx_explicit(1403434233899801417, 63488, 1, 1, )

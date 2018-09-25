@@ -11,3 +11,45 @@ export function sortBy(...keys: string[]) {
   }
 }
 
+export class Serializer {
+  static types: Map<string, new () => any> = new Map();
+
+  static register<T>(ctor: new () => T) {
+    Serializer.types.set(ctor.name, ctor);
+  }
+
+  static serialize(obj: any) {
+    return JSON.stringify(obj);
+  }
+
+  static create(obj: any) {
+    if (typeof (obj) === 'object') {
+      const typeName = obj['json_type'] || obj['type'];
+      if (typeName) {
+        let result: any = {};
+        const ctor = Serializer.types.get(typeName);
+        if (ctor) {
+          result = new ctor();
+        } else {
+          console.log('Unknown serializer type ' + typeName);
+        }
+
+        for (const key of Object.keys(obj)) {
+          result[key] = obj[key];
+        }
+
+        return result;
+      } else if (obj.length !== undefined) {
+        return obj.map(Serializer.create);
+      } else {
+        return obj;
+      }
+    } else {
+      return obj;
+    }
+  }
+
+  static deserialize(obj: any) {
+    return Serializer.create(obj);
+  }
+}

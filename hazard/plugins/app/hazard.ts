@@ -1,32 +1,18 @@
-export class Thing {
+import { Serializer } from './utils';
+
+class ThingBase {
   id: number;
   name: string;
-  features: string[];
   zone: string;
-  type: string;
-  location: Location;
+  location: ThingLocation;
+  features: string[];
+}
 
-  // Type-specific properties.
-  buttons: SwitchButton[];
-
-  static fromJSON(json: any) {
-    const thing = new Thing();
-
-    thing.id = json.id;
-    thing.name = json.name;
-    thing.features = json.features;
-    thing.zone = json.zone;
-    thing.type = json.type;
-    thing.location = Location.fromJSON(json.location);
-
-    thing.buttons = json.buttons ? json.buttons.map(SwitchButton.fromJSON) : [];
-    return thing;
-  }
-
+export class Thing extends ThingBase {
   static async load(): Promise<Thing[]> {
     let response = await fetch('/api/rest/thing/list');
     let things = await response.json();
-    return things.map(Thing.fromJSON);
+    return Serializer.deserialize(things);
   }
 
   async action(action: string, data?: any): Promise<any> {
@@ -56,47 +42,42 @@ export class Thing {
     });
     return await response.json();
   }
+
+  async remove() {
+    let response = await fetch('/api/rest/thing/' + this.id + '/remove', {
+      method: 'POST',
+      body: JSON.stringify(this),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return await response.json();
+  }
 }
+Serializer.register(Thing);
+
+export class Light extends Thing {
+}
+Serializer.register(Light);
+
+export class Switch extends Thing {
+  buttons: SwitchButton[];
+}
+Serializer.register(Switch);
 
 export class SwitchButton {
-  code: SwitchButtonCode;
-
-  static fromJSON(json: any) {
-    const btn = new SwitchButton();
-    btn.code = SwitchButtonCode.fromJSON(json.code);
-    return btn;
-  }
+  code: string;
+  name: string;
+  single: string;
+  double: string;
 }
+Serializer.register(SwitchButton);
 
-export class SwitchButtonCode {
-  tap: string;
-  doubleTap: string;
-
-  static fromJSON(json: any) {
-    const code = new SwitchButtonCode();
-    code.tap = json.tap;
-    code.doubleTap = json.double_tap;
-    return code;
-  }
-}
-
-export class Location {
+export class ThingLocation {
   x: number;
   y: number;
-
-  static fromJSON(json: any) {
-    const location = new Location();
-    location.x = json.x;
-    location.y = json.y;
-    return location;
-  }
 }
-
-export class ThingType {
-}
-
-//   export async function thingSave(thing: Thing) {
-//   }
+Serializer.register(ThingLocation);
 
 // export async function loadThingTypes(): Promise<ThingType[]> {
 //   // if (loadThingTypes.__cached) {

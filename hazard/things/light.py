@@ -34,6 +34,13 @@ class Light(Thing, LightBase):
   def _features(self):
     return super()._features() + ['light', 'light-level', 'light-temperature',]
 
+  def to_json(self):
+    json = super().to_json()
+    json.update({
+      'json_type': 'Light',
+    })
+    return json
+
 
 @register_thing
 class LightGroup(ThingGroup, LightBase):
@@ -43,3 +50,10 @@ class LightGroup(ThingGroup, LightBase):
 
   def _features(self):
     return super()._features() + ['light', 'light-level', 'light-temperature',]
+
+  def to_json(self):
+    json = super().to_json()
+    json.update({
+      'json_type': 'Light',
+    })
+    return json

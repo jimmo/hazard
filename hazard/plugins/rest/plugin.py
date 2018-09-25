@@ -14,6 +14,7 @@ class RestPlugin(HazardPlugin):
       aiohttp.web.get('/api/rest/thing/list', self.handle_thing_list),
       aiohttp.web.get('/api/rest/thing/types', self.handle_thing_type_list),
       aiohttp.web.post('/api/rest/thing/{id}', self.handle_thing),
+      aiohttp.web.post('/api/rest/thing/{id}/remove', self.handle_thing_remove),
       aiohttp.web.post('/api/rest/thing/{id}/action/{action}', self.handle_thing_action),
     ]
 
@@ -42,4 +43,9 @@ class RestPlugin(HazardPlugin):
     thing = self._get_thing_or_404(request)
     data = await request.json()
     await thing.action(request.match_info['action'], data)
+    return aiohttp.web.json_response({})
+
+  async def handle_thing_remove(self, request):
+    thing = self._get_thing_or_404(request)
+    thing.remove()
     return aiohttp.web.json_response({})

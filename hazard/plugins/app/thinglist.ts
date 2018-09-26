@@ -123,16 +123,17 @@ class ThingActionSwitchButton extends Button {
   protected async contextMenu(): Promise<MenuItems> {
     const rename = new MenuItem('Rename');
     rename.click.add(async () => {
-      const result = await new PromptDialog('Button name:', this.button.name).modal(this.form());
+      const result = await new PromptDialog('Button name:', this.button.name).modal(this.form);
       if (result) {
         this.button.name = result;
         this.thing.save();
+        this.text = result;
       }
     });
 
     const edit = new MenuItem('Edit code');
     edit.click.add(async () => {
-      await new ThingActionSwitchButtonCodeDialog(this.thing, this.button).modal(this.form());
+      await new ThingActionSwitchButtonCodeDialog(this.thing, this.button).modal(this.form);
     });
 
     return [
@@ -222,7 +223,7 @@ class ThingListItem extends ListItem<Thing> {
     });
     this.mouseup.add((ev) => {
       if (ev.capture && ev.inside()) {
-        new ThingDialog(this.thing).modal(this.form());
+        new ThingDialog(this.thing).modal(this.form);
       }
     });
   }

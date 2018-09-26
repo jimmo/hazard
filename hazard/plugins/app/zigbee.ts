@@ -1,5 +1,5 @@
 import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Ionicons, MenuItems, PromptDialog, MenuItem, MenuSeparatorItem, StaticTree, ConfirmDialog, MenuHeadingItem } from 'canvas-forms';
-import { Serializer } from './utils';
+import { Serializer, sortBy } from './utils';
 
 let form: Form = null;
 
@@ -231,6 +231,7 @@ class ZigBeeExplorerDevices extends SimpleTreeNode {
 
   async treeChildren(): Promise<TreeNode[]> {
     const devices = await ZigBeeDevice.load();
+    devices.sort(sortBy('name'));
     return devices.map(device => new ZigBeeDeviceNode(device));
   }
 }
@@ -551,7 +552,7 @@ export class ZigBeeTree extends Tree {
 
   added() {
     super.added();
-    form = this.form();
+    form = this.form;
     const root = this.addRoot(new ZigBeeExplorer());
     root.open();
   }

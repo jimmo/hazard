@@ -1,4 +1,4 @@
-import { Label, ScrollBox, Control, TextListItem, List, Ionicons, CheckBox, Grabber, CoordAxis, MenuItems, MenuHeadingItem, MenuItem, PromptDialog, MenuSeparatorItem, ConfirmDialog } from "canvas-forms";
+import { Label, ScrollBox, Control, TextListItem, List, Ionicons, CheckBox, Grabber, CoordAxis, MenuItems, MenuHeadingItem, MenuItem, PromptDialog, MenuSeparatorItem, ConfirmDialog, ListItem, Spacer } from "canvas-forms";
 import { Thing } from './hazard';
 import { ThingDialog } from "./thinglist";
 
@@ -25,7 +25,7 @@ class MapThing extends Control {
     });
     this.mouseup.add((ev) => {
       if (ev.capture && ev.inside()) {
-        new ThingDialog(this.thing).modal(this.form());
+        new ThingDialog(this.thing).modal(this.form);
       }
     });
   }
@@ -36,6 +36,8 @@ class MapThing extends Control {
       return null;
     } else {
       const items: MenuItems = [
+        new MenuHeadingItem(this.thing.name),
+        new MenuSeparatorItem(),
         new MenuHeadingItem('Move to:'),
       ];
       for (const zone of map.zones) {
@@ -52,7 +54,7 @@ class MapThing extends Control {
       }
       const newItem = new MenuItem('New zone...');
       newItem.click.add(async () => {
-        const zone = await new PromptDialog('Zone name', '').modal(this.form());
+        const zone = await new PromptDialog('Zone name', '').modal(this.form);
         this.thing.zone = zone;
         await this.thing.save();
         map.updateZones();
@@ -63,7 +65,7 @@ class MapThing extends Control {
 
       const remove = new MenuItem('Delete...');
       remove.click.add(async () => {
-        const result = await new ConfirmDialog('Delete ' + this.thing.name + '?').modal(this.form());
+        const result = await new ConfirmDialog('Delete ' + this.thing.name + '?').modal(this.form);
         if (result) {
           await this.thing.remove();
           map.updateZones();
@@ -89,7 +91,7 @@ export class MapView extends Control {
 
     this._container = this.add(new ScrollBox(), 0, 0, null, null, 0, 0);
 
-    this._zones = this.add(new List<string>(TextListItem), { x2: 10, w: 80, y: 10 });
+    this._zones = this.add(new List<string>(TextListItem), { x2: 10, w: 120, y: 10 });
     this._zones.coords.h.fit();
 
     this._zones.change.add(() => {
@@ -137,23 +139,22 @@ export class MapView extends Control {
         return;
       }
 
+      const sortedZones = [...zones].sort();
       if (!this._lastZone) {
-        this._lastZone = zones.keys().next().value;
+        this._lastZone = sortedZones[0];
       }
-      let z = null;
-      for (const zone of zones) {
-        z = this._zones.addItem(zone);
+      for (const zone of sortedZones) {
+        const z = this._zones.addItem(zone);
         if (zone === this._lastZone) {
-          z.setSelected(true);
+          z.selected = true;
         }
-      }
-      if (!this._zones.selected()) {
-        z.setSelected(true);
       }
       return;
     }
 
-    this._lastZone = this._zones.selected();
+    this._lastZone = this._zones.selectedItem;
+
+    let maxX = 0;
 
     for (const thing of things) {
       if (thing.zone !== this._lastZone) {
@@ -178,6 +179,10 @@ export class MapView extends Control {
         mapThing.coords.x.set(thing.location.x);
         mapThing.coords.y.set(thing.location.y);
       }
+
+      maxX = Math.max(maxX, thing.location.x);
     }
+
+    this._container.add(new Spacer(), maxX + 200, 0, 10, 10);
   }
 }

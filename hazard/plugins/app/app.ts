@@ -30,15 +30,15 @@ Ionicons.load();
     btn.click.add(() => {
       for (const otherBtn of tabButtons) {
         if (otherBtn !== btn) {
-          otherBtn.setActive(false);
+          otherBtn.active = false;
         }
       }
-      btn.setActive(true);
+      btn.active = true;
       container.clear();
       callback();
     });
     if (tabs.controls.length === 1) {
-      btn.setActive(true);
+      btn.active = true;
       callback();
     }
     return btn;

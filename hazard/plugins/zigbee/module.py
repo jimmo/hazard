@@ -38,6 +38,6 @@ class ZigBeeModule():
   def _on_device_frame(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     print('Frame from {}/{} {} {} {} {} -- {}'.format(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data))
     if addr64 in self._callbacks:
-      self._callbacks[addr64](source_endpoint, dest_endpoint, cluster, profile, data)
+      self._callbacks[addr64](addr16, source_endpoint, dest_endpoint, cluster, profile, data)
     elif self._unknown:
       self._unknown(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data)

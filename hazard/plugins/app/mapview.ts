@@ -1,5 +1,5 @@
 import { Label, ScrollBox, Control, TextListItem, List, Ionicons, CheckBox, Grabber, CoordAxis, MenuItems, MenuHeadingItem, MenuItem, PromptDialog, MenuSeparatorItem, ConfirmDialog, ListItem, Spacer } from "canvas-forms";
-import { Thing } from './hazard';
+import { Thing, Light } from './hazard';
 import { ThingDialog } from "./thinglist";
 
 class MapThing extends Control {
@@ -16,6 +16,11 @@ class MapThing extends Control {
     } else {
       l.text = thing.name;
     }
+
+    if (thing.hasFeature('light')) {
+      l.color = (thing as Light).on ? 'orange' : 'black';
+    }
+
     l.fontSize = 40;
     l.fit = true;
 
@@ -23,9 +28,11 @@ class MapThing extends Control {
       ev.capture();
       ev.cancelBubble();
     });
-    this.mouseup.add((ev) => {
+    this.mouseup.add(async (ev) => {
       if (ev.capture && ev.inside()) {
-        new ThingDialog(this.thing).modal(this.form);
+        await new ThingDialog(this.thing).modal(this.form);
+        const map = this.parent.parent as MapView;
+        map.update();
       }
     });
   }
@@ -121,9 +128,8 @@ export class MapView extends Control {
   }
 
   async update() {
-    this._container.clear();
-
     const things = await Thing.load();
+    this._container.clear();
 
     const zones = new Set<string>();
     if (this._zones.controls.length === 0) {
@@ -184,5 +190,9 @@ export class MapView extends Control {
     }
 
     this._container.add(new Spacer(), maxX + 200, 0, 10, 10);
+
+    window.setTimeout(() => {
+      this.update();
+    }, 1000);
   }
 }

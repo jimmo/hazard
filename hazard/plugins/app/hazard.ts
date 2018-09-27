@@ -57,6 +57,10 @@ export class Thing extends ThingBase {
 Serializer.register(Thing);
 
 export class Light extends Thing {
+  on: boolean;
+  level: number;
+  hue: number;
+  temperature: number;
 }
 Serializer.register(Light);
 

@@ -39,7 +39,7 @@ class ThingActionLightLevel extends ThingAction {
     super(thing);
 
     this.add(new Label('Level'), 30, 10);
-    const slider = this.add(new Slider(1, 0, 1, 0.1), { x: 100, y: 10, x2: 30 });
+    const slider = this.add(new Slider(thing.level, 0, 1, 0.1), { x: 100, y: 10, x2: 30 });
     slider.change.add(() => {
       thing.action('level', {
         level: slider.value,
@@ -53,7 +53,7 @@ class ThingActionColorTemperature extends ThingAction {
     super(thing);
 
     this.add(new Label('Temp'), 30, 10);
-    const slider = this.add(new Slider(10000, 1200, 10000, 100), { x: 100, y: 10, x2: 30 });
+    const slider = this.add(new Slider(thing.temperature, 1200, 10000, 100), { x: 100, y: 10, x2: 30 });
     slider.change.add(() => {
       thing.action('temperature', {
         temperature: slider.value,
@@ -245,7 +245,7 @@ export class ThingList extends List<Thing> {
     this.clear();
 
     const things = await Thing.load();
-    things.sort(sortBy('zone', 'name'));
+    things.sort(sortBy('zone', 'type', 'name'));
     for (const thing of things) {
       if (thing.hasFeature('group')) {
         continue;
@@ -266,7 +266,7 @@ export class GroupList extends List<Thing> {
     this.clear();
 
     const things = await Thing.load();
-    things.sort(sortBy('zone', 'name'));
+    things.sort(sortBy('zone', 'type', 'name'));
     for (const thing of things) {
       if (!thing.hasFeature('group')) {
         continue;

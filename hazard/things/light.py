@@ -2,28 +2,39 @@ from hazard.thing import Thing, ThingGroup, register_thing
 
 class LightBase:
   def __init__(self):
+    self._on = False
     self._level = False
-    self._color = False
+    self._hue = False
     self._temperature = False
 
   async def on(self):
-    pass
+    self._on = True
 
   async def off(self):
-    pass
+    self._on = False
 
   async def toggle(self):
-    print('toggle', self._name)
+    self._on = not self._on
 
   async def level(self, level=None, delta=None):
-    print('level', self._name, level, delta)
+    if level is not None:
+      self._level = level
+    elif delta is not None:
+      self._level = min(1, max(0, self._level + delta))
 
   async def hue(self, hue):
-    pass
+    self._hue = hue
 
   async def temperature(self, temperature):
-    print('temperature', self._name, temperature)
+    self._temperature = temperature
 
+  def to_json(self):
+    return {
+      'on': self._on,
+      'level': self._level,
+      'hue': self._hue,
+      'temperature': self._temperature,
+    }
 
 @register_thing
 class Light(Thing, LightBase):
@@ -36,6 +47,7 @@ class Light(Thing, LightBase):
 
   def to_json(self):
     json = super().to_json()
+    json.update(LightBase.to_json(self))
     json.update({
       'json_type': 'Light',
     })
@@ -53,6 +65,7 @@ class LightGroup(ThingGroup, LightBase):
 
   def to_json(self):
     json = super().to_json()
+    json.update(LightBase.to_json(self))
     json.update({
       'json_type': 'Light',
     })

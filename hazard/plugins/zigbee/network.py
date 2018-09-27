@@ -32,7 +32,7 @@ class ZigBeeNetwork():
   def _on_unknown_device_frame(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     if addr64 not in self._devices:
       self._devices[addr64] = ZigBeeDevice(self, addr64, addr16)
-    self._devices[addr64]._on_frame(source_endpoint, dest_endpoint, cluster, profile, data)
+    self._devices[addr64]._on_frame(addr16, source_endpoint, dest_endpoint, cluster, profile, data)
     self._hazard.save()
 
   def all_devices(self):

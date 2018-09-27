@@ -1,6 +1,8 @@
 import asyncio
 import async_timeout
 
+from hazard.plugins.zigbee.common import ZigBeeDeliveryFailure
+
 import zcl.spec
 
 
@@ -19,7 +21,11 @@ class ZigBeeDevice():
   def register_zcl(self, callback):
     self._on_zcl_callback = callback
 
-  def _on_frame(self, source_endpoint, dest_endpoint, cluster, profile, data):
+  def _on_frame(self, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
+    if addr16 != self._addr16:
+      print('Updating addr16 on {} (rx: 0x{:04x}, config: 0x{:04x})'.format(self.addr64hex(), addr16, self._addr16))
+      self._addr16 = addr16
+      self._network._hazard.save()
     #print('Received frame from device', source_endpoint, dest_endpoint, cluster, profile, data)
     if profile == zcl.spec.Profile.ZIGBEE and dest_endpoint == zcl.spec.Endpoint.ZDO:
       self._on_zdo(cluster, data)
@@ -27,9 +33,9 @@ class ZigBeeDevice():
       self._on_zcl(source_endpoint, dest_endpoint, cluster, profile, data)
 
   def _on_zdo(self, cluster, data):
-    #print('zdo', self._addr64, self._addr16, cluster, data)
+    print('zdo', self._addr64, self._addr16, cluster, data)
     cluster_name, seq, kwargs = zcl.spec.decode_zdo(cluster, data)
-    #print('zdo', cluster_name, seq, kwargs)
+    print(' -> ', cluster_name, seq, kwargs)
 
     if seq in self._inflight:
       #print('  delivering future')

@@ -15,6 +15,7 @@ class ZigBeeLight(Light):
 
   async def create_from_device(self, device):
     self._device = device
+    self._device.register_zcl(self._on_zcl)
     self._name = device._name
 
     active_eps = await device.zdo('active_ep', addr16=device._addr16)
@@ -23,6 +24,16 @@ class ZigBeeLight(Light):
       desc = desc['simple_descriptors'][0]
       self._endpoint = desc['endpoint']
       break
+    
+  async def _on_zcl(self, source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs):
+    if command_type == zcl.spec.ZclCommandType.PROFILE and command_name == 'report_attributes':
+      if cluster_name == 'onoff':
+        self._on = bool(kwargs['attributes'][0]['value'])
+      elif cluster_name == 'level_control':
+        self._level = kwargs['attributes'][0]['value'] / 255
+      else:
+        print('light attribute', source_endpoint, dest_endpoint, cluster_name, command_type, command_name, repr(kwargs))
+
 
   async def on(self):
     if not self._device:
@@ -75,6 +86,7 @@ class ZigBeeLight(Light):
   def load_json(self, json):
     super().load_json(json)
     self._device = self._hazard.find_plugin('ZigBeePlugin').network().find_device(json['device'])
+    self._device.register_zcl(self._on_zcl)
     self._endpoint = json['endpoint']
 
 

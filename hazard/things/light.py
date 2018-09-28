@@ -3,9 +3,9 @@ from hazard.thing import Thing, ThingGroup, register_thing
 class LightBase:
   def __init__(self):
     self._on = False
-    self._level = False
-    self._hue = False
-    self._temperature = False
+    self._level = 0
+    self._hue = 0
+    self._temperature = 0
 
   async def on(self):
     self._on = True

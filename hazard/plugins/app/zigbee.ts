@@ -1,4 +1,4 @@
-import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Ionicons, MenuItems, PromptDialog, MenuItem, MenuSeparatorItem, StaticTree, ConfirmDialog, MenuHeadingItem } from 'canvas-forms';
+import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Ionicons, MenuItems, PromptDialog, MenuItem, MenuSeparatorItem, StaticTree, ConfirmDialog, MenuHeadingItem, ListItem, List } from 'canvas-forms';
 import { Serializer, sortBy } from './utils';
 
 let form: Form = null;
@@ -393,7 +393,33 @@ class ZigBeeInClusterNode extends SimpleTreeNode {
   async treeChildren(): Promise<TreeNode[]> {
     return [
       ...this.cluster.rx_commands.map(command => new ZigBeeClusterCommandNode(this.device, this.endpoint, this.cluster, command)),
-      ...this.cluster.attributes.map(attribute => new ZigBeeClusterAttributeNode(this.device, this.endpoint, this.cluster, attribute)),
+    ];
+  }
+
+
+  async treeMenu(): Promise<MenuItems> {
+    const attributesItem = new MenuItem('Attributes');
+    attributesItem.click.add(() => {
+      new ZigBeeAttributesDialog(this.device, this.endpoint, this.cluster).modal(form);
+    });
+    const bindItem = new MenuItem('Bind');
+    bindItem.click.add(async () => {
+      const status = await loadStatus();
+
+      let response = await this.device.sendZdo('bind', {
+        'src_addr': this.device.addr64,
+        'src_ep': this.endpoint.endpoint,
+        'cluster': this.cluster.cluster,
+        'dst_addr_mode': 3,  // 64-bit device.
+        'dst_addr': status['coordinator_addr64'],
+        'dst_ep': 1,
+      });
+
+      new AlertDialog(JSON.stringify(response, null, '  ')).modal(form);
+    });
+    return [
+      attributesItem,
+      bindItem
     ];
   }
 }
@@ -407,19 +433,6 @@ class ZigBeeClusterCommandNode extends SimpleTreeLeafNode {
     new ZigBeeCommandDialog(this.device, this.command.args, async (req: any) => {
       return await this.device.sendZclCluster(this.endpoint, this.cluster.name, this.command.name, req);
     }).modal(form);
-  }
-}
-
-class ZigBeeClusterAttributeNode extends SimpleTreeLeafNode {
-  constructor(private readonly device: ZigBeeDevice, private readonly endpoint: ZigBeeEndpoint, private readonly cluster: ZigBeeCluster, readonly attribute: ZigBeeClusterAttribute) {
-    super('Attribute: ' + attribute.name);
-  }
-
-  async treeSelect() {
-    const attrs = await this.device.sendZclProfile(this.endpoint, this.cluster.name, 'read_attributes', {
-      'attributes': [this.attribute.attribute],
-    });
-    console.log(attrs[1].attributes[0].value);
   }
 }
 
@@ -508,6 +521,81 @@ class ZigBeeCommandDialog extends Dialog {
     super.defaultConstraints();
   }
 }
+
+
+class AttributeListItem extends ListItem<ZigBeeClusterAttribute> {
+  title: Label;
+  report: Button;
+
+  constructor(attribute: ZigBeeClusterAttribute) {
+    super(attribute);
+    this.title = this.add(new Label(attribute.name), 5, 1, null, null, 110, 1);
+  }
+
+  update(device: ZigBeeDevice, endpoint: ZigBeeEndpoint, cluster: ZigBeeCluster, attr: ZigBeeClusterAttribute, attrResult: any) {
+    this.title.text += '(' + attrResult.value + ')';
+
+    this.report = this.add(new Button('Report'), { w: 100, x2: 10, y: 1, y2: 1 });
+
+    this.report.click.add(async () => {
+      const result = await device.sendZclProfile(endpoint, cluster.name, 'configure_reporting', {
+        'configs': [
+          {
+            'attribute': attr.attribute,
+            'datatype': attr.datatype,
+            'minimum': 0,
+            'maximum': 20 + Math.round(Math.random() * 40),
+          }
+        ]
+      });
+      console.log(result);
+    });
+  }
+}
+
+class ZigBeeAttributesDialog extends Dialog {
+  list: List<ZigBeeClusterAttribute>;
+
+  constructor(private readonly device: ZigBeeDevice, private readonly endpoint: ZigBeeEndpoint, private readonly cluster: ZigBeeCluster) {
+    super();
+
+    this.list = this.add(new List<ZigBeeClusterAttribute>(AttributeListItem), { x: 10, y: 10, x2: 10, y2: 60 });
+
+    const close = this.add(new Button('Close'), { w: 100, x2: 10, y2: 10 });
+    close.click.add(() => {
+      this.close();
+    });
+
+    for (const attribute of cluster.attributes) {
+      this.list.addItem(attribute);
+    }
+  }
+
+  protected async added() {
+    super.added();
+
+    const n = 1;
+    for (let i = 0; i < this.cluster.attributes.length; i += n) {
+      const attrs = await this.device.sendZclProfile(this.endpoint, this.cluster.name, 'read_attributes', {
+        'attributes': this.cluster.attributes.map(attribute => attribute.attribute).slice(i, i + n)
+      });
+      for (const result of attrs[1].attributes) {
+        const attr = this.cluster.attributes.find(x => x.attribute === result.attribute);
+        if (attr) {
+          const item = this.list.getItem(attr) as AttributeListItem;
+          item.update(this.device, this.endpoint, this.cluster, attr, result);
+        }
+      }
+      console.log(attrs);
+    }
+  }
+
+  protected defaultConstraints() {
+    this.coords.size(480, 500);
+    super.defaultConstraints();
+  }
+}
+
 
 
 class ZigBeeDeviceZdosNode extends SimpleTreeNode {

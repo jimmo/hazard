@@ -30,6 +30,18 @@ class ZigBeeNetwork():
       self._groups[group._addr16] = group
 
   def _on_unknown_device_frame(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
+    # The xbee seems to lose its routing table sometimes, but still gives us a valid
+    # network address.
+    if addr64 == 0xffffffffffffffff:
+      for d in self._devices.values():
+        if d.addr16() == addr16:
+          print('Updating to {} to {}'.format(addr64, d.addr64hex()))
+          addr64 = d.addr64()
+          break
+    else:
+      print('Message from unknown 2^64-1 addr.')
+      return
+          
     if addr64 not in self._devices:
       self._devices[addr64] = ZigBeeDevice(self, addr64, addr16)
     self._devices[addr64]._on_frame(addr16, source_endpoint, dest_endpoint, cluster, profile, data)

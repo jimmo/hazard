@@ -108,6 +108,7 @@ class ZigBeePlugin(HazardPlugin):
     profile = self.get_profile_from_request(request)
     kwargs = await request.json()
     result = await device.zcl_profile(profile, int(request.match_info['endpoint'], 10), request.match_info['cluster_name'], request.match_info['command_name'], **kwargs)
+    print(result)
     return aiohttp.web.json_response(result)
 
   async def handle_device_cluster_zcl(self, request):

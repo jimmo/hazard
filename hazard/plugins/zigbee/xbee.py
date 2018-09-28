@@ -74,6 +74,7 @@ AT_COMMANDS = {
   'OP': 'uint64',
   'SH': 'uint32',
   'SL': 'uint32',
+  'NC': 'uint8',
 }
 
 
@@ -219,7 +220,7 @@ class XBeeModule(ZigBeeModule):
       for i in range(50):
         await asyncio.sleep(0.1)
       try:
-        print('Ping response', hex(await self._send_at('OP')))
+        print('Ping response', hex(await self._send_at('NC')))
       except ZigBeeTimeout:
         print('Ping timeout')
       #await self._tx_explicit(1403434233899801417, 63488, 1, 1, )

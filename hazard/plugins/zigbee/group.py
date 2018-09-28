@@ -1,7 +1,7 @@
 import asyncio
 import async_timeout
 
-from hazard.plugins.zigbee.common import ZigBeeDeliveryFailure
+from hazard.plugins.zigbee.common import ZigBeeDeliveryFailure, ZigBeeTimeout
 
 import zcl.spec
 

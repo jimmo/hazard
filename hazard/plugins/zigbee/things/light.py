@@ -131,7 +131,7 @@ class ZigBeeLightGroup(LightGroup):
       return
     await super().temperature(temperature)
     mireds = int(1e6 / temperature)
-    await self._network.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_color_temperature', timeout=5, mireds=mireds, time=TRANSITION_TIME)
+    await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_color_temperature', timeout=5, mireds=mireds, time=TRANSITION_TIME)
 
   def to_json(self):
     json = super().to_json()

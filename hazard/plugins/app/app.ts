@@ -37,7 +37,7 @@ Ionicons.load();
       container.clear();
       callback();
     });
-    if (tabs.controls.length === 1) {
+    if (tabs.controls.length === 5) {
       btn.active = true;
       callback();
     }

@@ -30,8 +30,8 @@ class MapThing extends Control {
     });
     this.mouseup.add(async (ev) => {
       if (ev.capture && ev.inside()) {
-        await new ThingDialog(this.thing).modal(this.form);
         const map = this.parent.parent as MapView;
+        await new ThingDialog(this.thing).modal(this.form);
         map.update();
       }
     });
@@ -91,6 +91,7 @@ export class MapView extends Control {
   private _edit: CheckBox;
   private _zoneNames: Set<string> = new Set();
   private _lastZone: string;
+  private _interval: number;
 
   constructor() {
     super();
@@ -111,6 +112,12 @@ export class MapView extends Control {
     });
 
     this.update();
+
+    this._interval = window.setInterval(() => {
+      if (!this.editing) {
+        this.update();
+      }
+    }, 1000);
   }
 
   get editing() {
@@ -125,6 +132,10 @@ export class MapView extends Control {
     this._zoneNames.clear();
     this._zones.clear();
     this.update();
+  }
+
+  protected removed() {
+    window.clearTimeout(this._interval);
   }
 
   async update() {
@@ -190,9 +201,5 @@ export class MapView extends Control {
     }
 
     this._container.add(new Spacer(), maxX + 200, 0, 10, 10);
-
-    window.setTimeout(() => {
-      this.update();
-    }, 1000);
   }
 }

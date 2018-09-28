@@ -1,7 +1,7 @@
 import asyncio
 import async_timeout
 
-from hazard.plugins.zigbee.common import ZigBeeDeliveryFailure
+from hazard.plugins.zigbee.common import ZigBeeDeliveryFailure, ZigBeeTimeout
 
 import zcl.spec
 
@@ -100,6 +100,12 @@ class ZigBeeDevice():
 
   def addr64hex(self):
     return '0x{:08x}'.format(self._addr64)
+
+  def addr16(self):
+    return self._addr16
+
+  def addr64(self):
+    return self._addr64
 
   def to_json(self):
     return {

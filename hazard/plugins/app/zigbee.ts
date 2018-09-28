@@ -51,6 +51,18 @@ export class ZigBeeDevice {
     return await response.json();
   }
 
+  async sendZclProfile(endpoint: ZigBeeEndpoint, clusterName: string, commandName: string, data: any) {
+    data = data || {};
+    let response = await fetch('/api/zigbee/device/' + this.addr64 + '/zcl/profile/' + endpoint.profile.name + '/' + endpoint.endpoint + '/' + clusterName + '/' + commandName, {
+      method: 'POST',
+      body: Serializer.serialize(data),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return await response.json();
+  }
+
   async loadEndpoints() {
     let activeEps = await this.sendZdo('active_ep', { 'addr16': this.addr16 });
     let endpoints = [];
@@ -173,14 +185,23 @@ export class ZigBeeCluster {
   name: string;
   cluster: number;
   rx_commands: ZigBeeClusterCommand[];
+  attributes: ZigBeeClusterAttribute[];
 }
 Serializer.register(ZigBeeCluster);
 
 export class ZigBeeClusterCommand {
   name: string;
+  command: number;
   args: string;
 };
 Serializer.register(ZigBeeClusterCommand);
+
+export class ZigBeeClusterAttribute {
+  name: string;
+  attribute: number;
+  datatype: string;
+};
+Serializer.register(ZigBeeClusterAttribute);
 
 export class ZigBeeZdo {
   cluster_name: string;
@@ -370,7 +391,10 @@ class ZigBeeInClusterNode extends SimpleTreeNode {
   }
 
   async treeChildren(): Promise<TreeNode[]> {
-    return this.cluster.rx_commands.map(command => new ZigBeeClusterCommandNode(this.device, this.endpoint, this.cluster, command));
+    return [
+      ...this.cluster.rx_commands.map(command => new ZigBeeClusterCommandNode(this.device, this.endpoint, this.cluster, command)),
+      ...this.cluster.attributes.map(attribute => new ZigBeeClusterAttributeNode(this.device, this.endpoint, this.cluster, attribute)),
+    ];
   }
 }
 
@@ -383,6 +407,19 @@ class ZigBeeClusterCommandNode extends SimpleTreeLeafNode {
     new ZigBeeCommandDialog(this.device, this.command.args, async (req: any) => {
       return await this.device.sendZclCluster(this.endpoint, this.cluster.name, this.command.name, req);
     }).modal(form);
+  }
+}
+
+class ZigBeeClusterAttributeNode extends SimpleTreeLeafNode {
+  constructor(private readonly device: ZigBeeDevice, private readonly endpoint: ZigBeeEndpoint, private readonly cluster: ZigBeeCluster, readonly attribute: ZigBeeClusterAttribute) {
+    super('Attribute: ' + attribute.name);
+  }
+
+  async treeSelect() {
+    const attrs = await this.device.sendZclProfile(this.endpoint, this.cluster.name, 'read_attributes', {
+      'attributes': [this.attribute.attribute],
+    });
+    console.log(attrs[1].attributes[0].value);
   }
 }
 

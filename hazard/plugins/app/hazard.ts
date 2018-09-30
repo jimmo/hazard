@@ -25,7 +25,7 @@ export class Thing extends ThingBase {
       })
     });
 
-    return await response.json();
+    return Serializer.deserialize(await response.json);
   }
 
   hasFeature(feature: string) {
@@ -40,7 +40,7 @@ export class Thing extends ThingBase {
         'Content-Type': 'application/json'
       })
     });
-    return await response.json();
+    return Serializer.deserialize(await response.json);
   }
 
   async remove() {
@@ -51,10 +51,68 @@ export class Thing extends ThingBase {
         'Content-Type': 'application/json'
       })
     });
-    return await response.json();
+    return Serializer.deserialize(await response.json);
   }
 }
 Serializer.register(Thing);
+
+export class Action {
+  id: number;
+  name: string;
+  code: string;
+
+  static async load(): Promise<Action[]> {
+    let response = await fetch('/api/rest/action/list');
+    let actions = await response.json();
+    return Serializer.deserialize(actions);
+  }
+
+  static async create(): Promise<Action[]> {
+    let response = await fetch('/api/rest/action/create', {
+      method: 'POST',
+      body: JSON.stringify({}),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return Serializer.deserialize(await response.json());
+  }
+
+  async invoke(data?: any): Promise<any> {
+    data = data || {};
+    let response = await fetch('/api/rest/action/' + this.id + '/invoke', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return Serializer.deserialize(await response.json());
+  }
+
+  async save() {
+    let response = await fetch('/api/rest/action/' + this.id, {
+      method: 'POST',
+      body: JSON.stringify(this),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return Serializer.deserialize(await response.json());
+  }
+
+  async remove() {
+    let response = await fetch('/api/rest/action/' + this.id + '/remove', {
+      method: 'POST',
+      body: JSON.stringify(this),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+    return Serializer.deserialize(await response.json());
+  }
+}
+Serializer.register(Action);
 
 export class Light extends Thing {
   on: boolean;

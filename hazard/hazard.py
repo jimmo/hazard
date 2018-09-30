@@ -7,13 +7,17 @@ import hazard.things
 from hazard.plugin import create_plugin
 import hazard.plugins
 
+from hazard.action import Action
+
 
 class Hazard:
   def __init__(self):
     self._plugins = {}
     self._zones = {}
     self._things = {}
-    self._seq = 10
+    self._actions = {}
+    self._tseq = 10
+    self._aseq = 1
 
   def load(self):
     #try:
@@ -26,8 +30,14 @@ class Hazard:
       for t in config.get('things', []):
         print('Thing: {}'.format(t))
         t = create_thing_from_json(t, self)
-        self._seq = max(t.id() + 1, self._seq)
+        self._tseq = max(t.id() + 1, self._tseq)
         self._things[t.id()] = t
+      for a in config.get('actions', []):
+        print('Action: {}'.format(t))
+        action = Action(self)
+        action.load_json(a)
+        self._aseq = max(action.id() + 1, self._aseq)
+        self._actions[action.id()] = action
     #except FileNotFoundError:
     #  pass
     #except json.decoder.JSONDecodeError:
@@ -39,37 +49,7 @@ class Hazard:
     if 'AppPlugin' not in self._plugins:
       print('Creating default app plugin')
       self._plugins['AppPlugin'] = hazard.plugins.AppPlugin(self)
-
-    # if 1 not in self._things:
-    #   s = hazard.things.Switch(self)
-    #   s._id = 1
-    #   s._name = 'Switch 1'
-    #   #s.add_button('print("a")')
-    #   #s.add_button('print("b")')
-    #   #s.add_button('print("c")')
-    #   self._things[s.id()] = s
-
-    # if 2 not in self._things:
-    #   l1 = hazard.things.Light(self)
-    #   l1._id = 2
-    #   l1._name = 'Light 1'
-    #   self._things[l1.id()] = l1
-
-    # if 3 not in self._things:
-    #   l2 = hazard.things.Light(self)
-    #   l2._id = 3
-    #   l2._name = 'Light 2'
-    #   self._things[l2.id()] = l2
-
-    # if 4 not in self._things:
-    #   g1 = hazard.things.LightGroup(self)
-    #   g1._id = 4
-    #   g1._name = 'Group 1'
-    #   self._things[g1.id()] = g1
-
-    # if 5 not in self._things:
-    #   zl = hazard.plugins.zigbee.things.ZigBeeLight(self)
-
+      
     #self.save()
 
   def save(self):
@@ -80,6 +60,9 @@ class Hazard:
         ],
         'things': [
           t.to_json() for t in self._things.values()
+        ],
+        'actions': [
+          a.to_json() for a in self._actions.values()
         ],
       }
       json.dump(config, f, indent=2)
@@ -95,14 +78,20 @@ class Hazard:
         return t
     raise ValueError('Thing "{}" not found'.format(name))
 
+  def find_action(self, name):
+    for a in self._actions.values():
+      if a.name() == name:
+        return a
+    raise ValueError('Action "{}" not found'.format(name))
+
   def remove_thing(self, thing):
     del self._things[thing.id()]
     self.save()
 
   def create_thing(self, cls):
     thing = create_thing(cls, self)
-    thing._id = self._seq
-    self._seq += 1
+    thing._id = self._tseq
+    self._tseq += 1
     self._things[thing.id()] = thing
     return thing
 
@@ -115,3 +104,22 @@ class Hazard:
     for thing in self._things.values():
       await thing.reconfigure()
       
+  def create_action(self):
+    action = Action(self)
+    action._id = self._aseq
+    self._aseq += 1
+    self._actions[action.id()] = action
+    return action
+
+  
+  def execute(self, code):
+    if not code:
+      return
+    
+    code = 'async def __code():\n  import asyncio\n' + '\n'.join('  ' + line for line in code.split('\n')) + '\n\nimport asyncio\nasyncio.get_event_loop().create_task(__code())\n'
+    exec(code, {
+      'action': self.find_action,
+      'thing': self.find_thing,
+    }, {
+      'self': self,
+    })

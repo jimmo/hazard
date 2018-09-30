@@ -77,17 +77,6 @@ class ThingBase:
   def _features(self):
     return []
 
-  def execute(self, code):
-    if not code:
-      return
-    
-    code = 'async def __code():\n' + '\n'.join('  ' + line for line in code.split('\n')) + '\n\nimport asyncio\nasyncio.get_event_loop().create_task(__code())\n'
-    exec(code, {
-      'thing': self._hazard.find_thing,
-    }, {
-      'self': self,
-    })
-
   async def action(self, action, data):
     await getattr(self, action)(**data)
 

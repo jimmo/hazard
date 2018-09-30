@@ -59,10 +59,10 @@ class SwitchButton:
       self._waiting_for_double = None
 
   async def single(self):
-    self._switch.execute(self._single)
+    self._switch._hazard.execute(self._single)
 
   async def double(self):
-    self._switch.execute(self._double)
+    self._switch._hazard.execute(self._double)
 
 
 @register_thing

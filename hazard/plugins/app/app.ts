@@ -2,6 +2,7 @@ import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode
 import { ZigBeeTree } from './zigbee';
 import { MapView } from './mapview';
 import { ThingList, GroupList } from './thinglist';
+import { ActionList } from './actionlist';
 
 
 const form = new Form(new Surface('canvas'));
@@ -54,6 +55,7 @@ Ionicons.load();
     const list = container.add(new GroupList(), 0, 0, null, null, 0, 0);
   });
   addTab('Actions', Ionicons.Flash, () => {
+    const list = container.add(new ActionList(), 0, 0, null, null, 0, 0);
   });
   addTab('ZigBee', Ionicons.Hammer, () => {
     const zigbeeTree = container.add(new ZigBeeTree(), 0, 0, null, null, 0, 0);

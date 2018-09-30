@@ -243,6 +243,37 @@ class ZigBeeExplorer extends StaticTree {
     this.add(new ZigBeeExplorerDevices());
     this.add(new ZigBeeExplorerGroups());
   }
+
+  async treeMenu(): Promise<MenuItems> {
+    const allowJoining = new MenuItem('Allow joining');
+    allowJoining.click.add(async () => {
+      await fetch('/api/zigbee/joining', {
+        method: 'POST',
+        body: Serializer.serialize({
+          'allow': true,
+        }),
+        headers: new Headers({
+          'Content-Type': 'application/json'
+        })
+      });
+    });
+    const disallowJoining = new MenuItem('Disallow joining');
+    disallowJoining.click.add(async () => {
+      await fetch('/api/zigbee/joining', {
+        method: 'POST',
+        body: Serializer.serialize({
+          'allow': false,
+        }),
+        headers: new Headers({
+          'Content-Type': 'application/json'
+        })
+      });
+    });
+    return [
+      allowJoining,
+      disallowJoining,
+    ]
+  }
 }
 
 class ZigBeeExplorerDevices extends SimpleTreeNode {
@@ -351,11 +382,18 @@ class ZigBeeEndpointNode extends SimpleTreeNode {
   }
 
   async treeMenu(): Promise<MenuItems> {
+    const identify = new MenuItem('Identify');
+    identify.click.add(async () => {
+      await this.device.sendZclCluster(this.endpoint, 'identify', 'identify', { 'identify_time': 3 });
+    });
+
     const items: MenuItems = [
+      identify,
       new MenuHeadingItem('Add to group'),
     ];
 
     const groups = await ZigBeeGroup.load();
+    groups.sort(sortBy('name'));
     for (const group of groups) {
       const item = new MenuItem(group.name);
       item.click.add(async () => {
@@ -543,12 +581,25 @@ class AttributeListItem extends ListItem<ZigBeeClusterAttribute> {
           {
             'attribute': attr.attribute,
             'datatype': attr.datatype,
-            'minimum': 0,
-            'maximum': 20 + Math.round(Math.random() * 40),
+            'minimum': 5,
+            'maximum': 0,//20 + Math.round(Math.random() * 40),
+            'delta': 0,
           }
         ]
       });
-      console.log(result);
+
+      const status = await loadStatus();
+
+      let response = await device.sendZdo('bind', {
+        'src_addr': device.addr64,
+        'src_ep': endpoint.endpoint,
+        'cluster': cluster.cluster,
+        'dst_addr_mode': 3,  // 64-bit device.
+        'dst_addr': status['coordinator_addr64'],
+        'dst_ep': 1,
+      });
+
+      this.report.text = 'Done';
     });
   }
 }

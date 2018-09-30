@@ -39,7 +39,7 @@ class ThingActionLightLevel extends ThingAction {
     super(thing);
 
     this.add(new Label('Level'), 30, 10);
-    const slider = this.add(new Slider(thing.level, 0, 1, 0.1), { x: 100, y: 10, x2: 30 });
+    const slider = this.add(new Slider(thing.level, 0, 1, 0.2), { x: 100, y: 10, x2: 30 });
     slider.change.add(() => {
       thing.action('level', {
         level: slider.value,
@@ -67,8 +67,25 @@ class ThingActionColor extends ThingAction {
     super(thing);
 
     this.add(new Label('Colour'), 30, 10);
-    const slider = this.add(new Slider(1, 0, 1, 0.1), { x: 100, y: 10, x2: 30 });
+    const slider = this.add(new Slider(thing.hue, 0, 1, 0.1), { x: 100, y: 10, x2: 30 });
     slider.change.add(() => {
+      thing.action('hue', {
+        hue: slider.value,
+      });
+    }, 500);
+  }
+}
+
+class ThingActionSaturation extends ThingAction {
+  constructor(thing: Light) {
+    super(thing);
+
+    this.add(new Label('Satn'), 30, 10);
+    const slider = this.add(new Slider(thing.saturation, 0, 1, 0.1), { x: 100, y: 10, x2: 30 });
+    slider.change.add(() => {
+      thing.action('saturation', {
+        saturation: slider.value,
+      });
     }, 500);
   }
 }
@@ -189,6 +206,9 @@ export class ThingDialog extends Dialog {
     if (thing.hasFeature('light-color')) {
       list.addItem(thing as Light, ThingActionColor);
     }
+    if (thing.hasFeature('light-saturation')) {
+      list.addItem(thing as Light, ThingActionSaturation);
+    }
     if (thing.hasFeature('switch')) {
       list.addItem(thing as Switch, ThingActionSwitch);
     }
@@ -223,6 +243,8 @@ class ThingListItem extends ListItem<Thing> {
     });
     this.mouseup.add((ev) => {
       if (ev.capture && ev.inside()) {
+
+        //this.thing.action('on');
         new ThingDialog(this.thing).modal(this.form);
       }
     });

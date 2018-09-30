@@ -117,7 +117,7 @@ export class MapView extends Control {
       if (!this.editing) {
         this.update();
       }
-    }, 1000);
+    }, 10000);
   }
 
   get editing() {

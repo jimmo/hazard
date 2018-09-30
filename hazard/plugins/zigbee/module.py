@@ -35,6 +35,9 @@ class ZigBeeModule():
   async def broadcast(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     pass
 
+  async def allow_joining(self, allow):
+    pass
+
   def _on_device_frame(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     print('Frame from {}/{} {} {} {} {} -- {}'.format(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data))
     if addr64 in self._callbacks:

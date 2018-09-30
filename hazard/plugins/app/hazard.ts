@@ -61,6 +61,7 @@ export class Light extends Thing {
   level: number;
   hue: number;
   temperature: number;
+  saturation: number;
 }
 Serializer.register(Light);
 

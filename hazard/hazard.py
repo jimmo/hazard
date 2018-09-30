@@ -110,3 +110,8 @@ class Hazard:
     return [
     ] + sum([p.get_routes() for p in self._plugins.values()], [])
 
+
+  async def reconfigure(self):
+    for thing in self._things.values():
+      await thing.reconfigure()
+      

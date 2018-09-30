@@ -50,7 +50,7 @@ class XBeeProtocol(asyncio.Protocol):
           continue
         data = self._data[i + 3:i + frame_len - 1]
         chk = self._checksum(data)
-        if chk == self._data[i + frame_len - 1]:
+        if len(self._data) > i + frame_len - 1 and chk == self._data[i + frame_len - 1]:
           self._xbee_module._on_frame(data)
         else:
           print('bad frame', data)
@@ -75,6 +75,7 @@ AT_COMMANDS = {
   'SH': 'uint32',
   'SL': 'uint32',
   'NC': 'uint8',
+  'NJ': 'uint8',
 }
 
 
@@ -86,6 +87,7 @@ class XBeeModule(ZigBeeModule):
     self._inflight = {}
     self._port = ''
     self._baudrate = 0
+    self._rx = False
 
   def load_json(self, json):
     super().load_json(json)
@@ -111,7 +113,7 @@ class XBeeModule(ZigBeeModule):
     loop = asyncio.get_event_loop()
     coro = serial_asyncio.create_serial_connection(loop, self._create_protocol, self._port, baudrate=self._baudrate)
     loop.create_task(coro)
-    loop.create_task(self._ping())
+    #loop.create_task(self._ping())
 
   async def get_coordinator_addr64(self):
     sh = await self._send_at('SH')
@@ -129,6 +131,11 @@ class XBeeModule(ZigBeeModule):
 
   async def broadcast(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     return await self._tx_explicit(0x000000000000ffff, 0xffff, source_endpoint, dest_endpoint, cluster, profile, data)
+
+  async def allow_joining(self, allow):
+    await self._send_at('NJ', 0xff if allow else 0)
+    result = await self._send_at('NJ')
+    print('Allow joining: ', result > 0)
 
   async def _tx_explicit(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data, radius=0, retries=True, indirect=False, multicast=False, aps=False, extended_timeout=False):
     opt = 0
@@ -158,6 +165,8 @@ class XBeeModule(ZigBeeModule):
     frame_type, = struct.unpack('B', data[:1])
     data = data[1:]
 
+    self._rx = True
+
     if frame_type in (0x88, 0x8b,):
       # AT Response or Transmit Status
       frame_id, = struct.unpack('B', data[:1])
@@ -182,12 +191,20 @@ class XBeeModule(ZigBeeModule):
       print('Unknown frame type: 0x{:02x}'.format(frame_type,))
 
   async def _send_frame(self, frame_type, data, timeout=5, reply=True):
+    #while self._rx:
+    #  self._rx = False
+    #  await asyncio.sleep(0.1)
+      
+    # while len(self._inflight) > 2:
+    #   await asyncio.sleep(0.1)
+
     data = struct.pack('BB', frame_type, self._frame_id) + data
     data = b'\x7e' + struct.pack('>H', len(data)) + data + struct.pack('B', self._protocol._checksum(data))
     frame_id = self._frame_id
     self._frame_id = (self._frame_id + 1) % 256 or 1
 
     f = asyncio.Future()
+    print(len(self._inflight))
     self._inflight[frame_id] = f
     #print('frame', data)
     self._protocol._transport.write(data)
@@ -220,7 +237,8 @@ class XBeeModule(ZigBeeModule):
       for i in range(50):
         await asyncio.sleep(0.1)
       try:
-        print('Ping response', hex(await self._send_at('NC')))
+        result = await self._send_at('NC')
+        print('Ping response', hex(result))
       except ZigBeeTimeout:
         print('Ping timeout')
       #await self._tx_explicit(1403434233899801417, 63488, 1, 1, )

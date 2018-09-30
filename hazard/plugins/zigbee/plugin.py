@@ -39,6 +39,7 @@ class ZigBeePlugin(HazardPlugin):
 
   def get_routes(self):
     return [
+      aiohttp.web.post('/api/zigbee/joining', self.handle_joining),
       aiohttp.web.get('/api/zigbee/spec', self.handle_spec),
       aiohttp.web.get('/api/zigbee/status', self.handle_status),
       aiohttp.web.get('/api/zigbee/device/list', self.handle_device_list),
@@ -54,6 +55,12 @@ class ZigBeePlugin(HazardPlugin):
       aiohttp.web.post('/api/zigbee/group/{group}/remove', self.handle_group_remove),
       aiohttp.web.post('/api/zigbee/group/{group}/zcl/cluster/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_group_cluster_zcl),
     ]
+
+  async def handle_joining(self, request):
+    data = await request.json()
+    await self._module.allow_joining(data['allow'])
+    return aiohttp.web.json_response({
+    })
 
   async def handle_spec(self, request):
     return aiohttp.web.json_response(zcl.spec.get_json())

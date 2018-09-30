@@ -94,6 +94,9 @@ class ThingBase:
   def remove(self):
     self._hazard.remove_thing(self)
 
+  async def reconfigure(self):
+    pass
+
 
 class Thing(ThingBase):
   def __init__(self, hazard):

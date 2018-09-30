@@ -35,12 +35,12 @@ class ZigBeeNetwork():
     if addr64 == 0xffffffffffffffff:
       for d in self._devices.values():
         if d.addr16() == addr16:
-          print('Updating to {} to {}'.format(addr64, d.addr64hex()))
+          # print('Updating to {} to {}'.format(addr64, d.addr64hex()))
           addr64 = d.addr64()
           break
-    else:
-      print('Message from unknown 2^64-1 addr.')
-      return
+      else:
+        print('Message from unknown 2^64-1 addr.')
+        return
           
     if addr64 not in self._devices:
       self._devices[addr64] = ZigBeeDevice(self, addr64, addr16)

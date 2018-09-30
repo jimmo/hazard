@@ -11,6 +11,7 @@ class RestPlugin(HazardPlugin):
 
   def get_routes(self):
     return [
+      aiohttp.web.get('/api/rest/reconfigure', self.handle_reconfigure),
       aiohttp.web.get('/api/rest/thing/list', self.handle_thing_list),
       aiohttp.web.get('/api/rest/thing/types', self.handle_thing_type_list),
       aiohttp.web.post('/api/rest/thing/{id}', self.handle_thing),
@@ -23,6 +24,10 @@ class RestPlugin(HazardPlugin):
     if thing_id not in self._hazard._things:
       raise aiohttp.web.HTTPNotFound('Unknown thing')
     return self._hazard._things[thing_id]
+
+  async def handle_reconfigure(self, request):
+    await self._hazard.reconfigure()
+    return aiohttp.web.json_response({})
 
   async def handle_thing(self, request):
     thing = self._get_thing_or_404(request)

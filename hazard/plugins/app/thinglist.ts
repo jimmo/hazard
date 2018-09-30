@@ -1,4 +1,4 @@
-import { List, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, FontStyle, FocusTextBox, Control, TextBox, TextAlign, MenuItems, MenuItem, PromptDialog } from "canvas-forms";
+import { List, ClickableListItem, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, FontStyle, FocusTextBox, Control, TextBox, TextAlign, MenuItems, MenuItem, PromptDialog } from "canvas-forms";
 import { Thing, Switch, Light, SwitchButton } from "./hazard";
 import { sortBy } from "./utils";
 
@@ -17,7 +17,7 @@ class ThingActionOnOff extends ThingAction {
   constructor(thing: Light) {
     super(thing);
 
-    const group = this.add(new ButtonGroup(), { x: 30, y: 10, x2: 30 });
+    const group = this.add(new ButtonGroup(), { x: 30, y: 10, x2: 30, h: 60 });
     const on = group.add(new Button('On', Ionicons.RadioButtonOn));
     const off = group.add(new Button('Off', Ionicons.RadioButtonOff));
     const toggle = group.add(new Button('Toggle', Ionicons.Switch));
@@ -38,8 +38,8 @@ class ThingActionLightLevel extends ThingAction {
   constructor(thing: Light) {
     super(thing);
 
-    this.add(new Label('Level'), 30, 10);
-    const slider = this.add(new Slider(thing.level, 0, 1, 0.2), { x: 100, y: 10, x2: 30 });
+    this.add(new Label('Level'), 30, 10, 100, 50);
+    const slider = this.add(new Slider(thing.level, 0, 1, 0.2), { x: 100, y: 10, x2: 30, h: 50 });
     slider.change.add(() => {
       thing.action('level', {
         level: slider.value,
@@ -52,8 +52,8 @@ class ThingActionColorTemperature extends ThingAction {
   constructor(thing: Light) {
     super(thing);
 
-    this.add(new Label('Temp'), 30, 10);
-    const slider = this.add(new Slider(thing.temperature, 1200, 10000, 100), { x: 100, y: 10, x2: 30 });
+    this.add(new Label('Temp'), 30, 10, 100, 50);
+    const slider = this.add(new Slider(thing.temperature, 1200, 10000, 100), { x: 100, y: 10, x2: 30, h: 50 });
     slider.change.add(() => {
       thing.action('temperature', {
         temperature: slider.value,
@@ -66,8 +66,8 @@ class ThingActionColor extends ThingAction {
   constructor(thing: Light) {
     super(thing);
 
-    this.add(new Label('Colour'), 30, 10);
-    const slider = this.add(new Slider(thing.hue, 0, 1, 0.1), { x: 100, y: 10, x2: 30 });
+    this.add(new Label('Colour'), 30, 10, 100, 50);
+    const slider = this.add(new Slider(thing.hue, 0, 1, 0.1), { x: 100, y: 10, x2: 30, h: 50 });
     slider.change.add(() => {
       thing.action('hue', {
         hue: slider.value,
@@ -80,8 +80,8 @@ class ThingActionSaturation extends ThingAction {
   constructor(thing: Light) {
     super(thing);
 
-    this.add(new Label('Satn'), 30, 10);
-    const slider = this.add(new Slider(thing.saturation, 0, 1, 0.1), { x: 100, y: 10, x2: 30 });
+    this.add(new Label('Satn'), 30, 10, 100, 50);
+    const slider = this.add(new Slider(thing.saturation, 0, 1, 0.1), { x: 100, y: 10, x2: 30, h: 50 });
     slider.change.add(() => {
       thing.action('saturation', {
         saturation: slider.value,
@@ -213,7 +213,7 @@ export class ThingDialog extends Dialog {
       list.addItem(thing as Switch, ThingActionSwitch);
     }
 
-    const close = this.add(new Button('Close'), { y2: 20, w: 100 });
+    const close = this.add(new Button('Close'), { y2: 20, w: 160 });
     close.coords.center(CoordAxis.X);
     close.click.add(() => {
       this.close();
@@ -229,30 +229,55 @@ export class ThingDialog extends Dialog {
   }
 }
 
-class ThingListItem extends ListItem<Thing> {
+class ThingListItem extends ClickableListItem<Thing> {
   constructor(readonly thing: Thing) {
     super(thing);
 
     this.border = true;
 
-    const l = this.add(new Label(thing.name), { x: 3, y: 3, x2: 3, y2: 3 });
+    const l = this.add(new Label(thing.name), { x: 60, y: 3, x2: 3, y2: 3 });
     l.align = TextAlign.CENTER;
+    l.fontSize = 22;
 
-    this.mousedown.add((ev) => {
-      ev.capture();
-    });
-    this.mouseup.add((ev) => {
-      if (ev.capture && ev.inside()) {
+    const icon = this.add(new Label(), { x: 3, y: 0, w: 60, y2: 0 });
+    icon.fontSize = 52;
+    icon.align = TextAlign.CENTER;
+    if (thing.hasFeature('group')) {
+      icon.icon = Ionicons.Expand;
+    } else if (thing.hasFeature('light')) {
+      icon.icon = Ionicons.Bulb;
+    } else if (thing.hasFeature('switch')) {
+      icon.icon = Ionicons.Switch;
+    }
+    if (thing.hasFeature('light')) {
+      icon.color = (thing as Light).on ? 'orange' : 'black';
+    }
 
-        //this.thing.action('on');
-        new ThingDialog(this.thing).modal(this.form);
+    this.click.add(async (ev) => {
+      if (ev.x < 60 && thing.hasFeature('light')) {
+        await this.thing.action('toggle');
+      } else {
+        await new ThingDialog(this.thing).modal(this.form);
       }
+      (this.parent as ThingList).update();
     });
   }
 
-  defaultConstraints() {
-    this.coords.h.set(40);
+  protected defaultConstraints() {
+    this.coords.h.set(60);
     return true;
+  }
+
+  protected paint(ctx: CanvasRenderingContext2D) {
+    super.paint(ctx);
+
+    ctx.strokeStyle = this.form.style.color.separator;
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.moveTo(60, 2);
+    ctx.lineTo(60, this.h - 2);
+    ctx.stroke();
   }
 }
 
@@ -277,17 +302,14 @@ export class ThingList extends List<Thing> {
   }
 }
 
-export class GroupList extends List<Thing> {
+export class GroupList extends ThingList {
   constructor() {
-    super(ThingListItem);
-
-    this.update();
+    super();
   }
 
   async update() {
-    this.clear();
-
     const things = await Thing.load();
+    this.clear();
     things.sort(sortBy('zone', 'type', 'name'));
     for (const thing of things) {
       if (!thing.hasFeature('group')) {

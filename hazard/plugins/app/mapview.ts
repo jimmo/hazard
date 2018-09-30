@@ -29,7 +29,7 @@ class MapThing extends Control {
       ev.cancelBubble();
     });
     this.mouseup.add(async (ev) => {
-      if (ev.capture && ev.inside()) {
+      if (ev.capture && ev.inside) {
         const map = this.parent.parent as MapView;
         await new ThingDialog(this.thing).modal(this.form);
         map.update();
@@ -99,7 +99,7 @@ export class MapView extends Control {
 
     this._container = this.add(new ScrollBox(), 0, 0, null, null, 0, 0);
 
-    this._zones = this.add(new List<string>(TextListItem), { x2: 10, w: 120, y: 10 });
+    this._zones = this.add(new List<string>(TextListItem), { x2: 10, w: 140, y: 10 });
     this._zones.coords.h.fit();
 
     this._zones.change.add(() => {

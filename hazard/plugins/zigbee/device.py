@@ -26,24 +26,22 @@ class ZigBeeDevice():
       print('Updating addr16 on {} (rx: 0x{:04x}, config: 0x{:04x})'.format(self.addr64hex(), addr16, self._addr16))
       self._addr16 = addr16
       self._network._hazard.save()
-    #print('Received frame from device', source_endpoint, dest_endpoint, cluster, profile, data)
     if profile == zcl.spec.Profile.ZIGBEE and dest_endpoint == zcl.spec.Endpoint.ZDO:
       self._on_zdo(cluster, data)
     else:
       self._on_zcl(source_endpoint, dest_endpoint, cluster, profile, data)
 
   def _on_zdo(self, cluster, data):
-    print('zdo', self._addr64, self._addr16, cluster, data)
     cluster_name, seq, kwargs = zcl.spec.decode_zdo(cluster, data)
-    print(' -> ', cluster_name, seq, kwargs)
+    print('ZDO from "{}": {} {}\n   {}'.format(self._name, seq, cluster_name, kwargs))
 
     if seq in self._inflight:
       #print('  delivering future')
       self._inflight[seq].set_result(kwargs)
 
   def _on_zcl(self, source_endpoint, dest_endpoint, cluster, profile, data):
-    #print('zcl', source_endpoint, dest_endpoint, cluster, profile, data)
     cluster_name, seq, command_type, command_name, kwargs = zcl.spec.decode_zcl(cluster, data)
+    print('ZCL from "{}": {} {} {} {} {} {} {}\n    {}'.format(self._name, source_endpoint, dest_endpoint, seq, profile, cluster_name, command_type, command_name, kwargs))
     if seq in self._inflight:
       self._inflight[seq].set_result((command_name, kwargs,))
     elif self._on_zcl_callback:
@@ -70,7 +68,7 @@ class ZigBeeDevice():
       async with async_timeout.timeout(timeout):
         return await f
     except asyncio.TimeoutError:
-      raise ZigBeeTimeout()
+      raise ZigBeeTimeout() from None
     finally:
       del self._inflight[seq]
 
@@ -81,22 +79,13 @@ class ZigBeeDevice():
 
   async def zcl_cluster(self, profile, dest_endpoint, cluster_name, command_name, timeout=5, **kwargs):
     seq = self._next_seq()
-    cluster, data = zcl.spec.encode_cluster_command(cluster_name, command_name, seq, 0, **kwargs)
+    cluster, data = zcl.spec.encode_cluster_command(cluster_name, command_name, seq, direction=0, default_response=True, **kwargs)
     return await self._send(seq, 1, dest_endpoint, cluster, profile, data, timeout)
 
   async def zcl_profile(self, profile, dest_endpoint, cluster_name, command_name, timeout=5, **kwargs):
     seq = self._next_seq()
-    cluster, data = zcl.spec.encode_profile_command(cluster_name, command_name, seq, 0, **kwargs)
+    cluster, data = zcl.spec.encode_profile_command(cluster_name, command_name, seq, direction=0, default_response=True, **kwargs)
     return await self._send(seq, 1, dest_endpoint, cluster, profile, data, timeout)
-
-  # async def _on_endpoint(self, status, addr16, simple_descriptors):
-  #   print('endpoint info', status, addr16, simple_descriptors)
-
-  # async def _on_endpoints(self, status, addr16, active_eps):
-  #   print('endpoint', status, addr16, active_eps)
-  #   for endpoint in active_eps:
-  #     descriptors = await self.zdo('simple_desc', addr16=self._addr16, endpoint=endpoint)
-  #     await self._on_endpoint(**descriptors)
 
   def addr64hex(self):
     return '0x{:08x}'.format(self._addr64)

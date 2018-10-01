@@ -136,6 +136,12 @@ export class SwitchButton {
 }
 Serializer.register(SwitchButton);
 
+export class Clock extends Thing {
+  interval: number;
+  code: string;
+}
+Serializer.register(Clock);
+
 export class ThingLocation {
   x: number;
   y: number;

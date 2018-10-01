@@ -28,14 +28,10 @@ class ZigBeeLight(Light):
       break
     
   async def _on_zcl(self, source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs):
-    print(repr(kwargs))
-    if command_name == 'report_attributes':
-      print(self._name, cluster_name, command_type, command_name, [a['attribute'] for a in kwargs['attributes']])
     if command_type == zcl.spec.ZclCommandType.PROFILE and command_name == 'report_attributes':
       if cluster_name == 'onoff':
         self._on = bool(kwargs['attributes'][0]['value'])
       elif cluster_name == 'level_control':
-        print(kwargs['attributes'][0]['value'])
         self._level = (kwargs['attributes'][0]['value'] - 1) / 253
       elif cluster_name == 'color':
         if kwargs['attributes'][0]['attribute'] == 7:
@@ -68,12 +64,14 @@ class ZigBeeLight(Light):
     await super().toggle()
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'toggle', timeout=5)
 
-  async def level(self, level=None, delta=None):
+  async def level(self, level=None, delta=None, onoff=False):
     if not self._device:
       return
     await super().level(level, delta)
-    print('new thing level', self._level)
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level', timeout=5, level=int(self._level*253) + 1, time=TRANSITION_TIME)
+    command = 'move_to_level'
+    if onoff:
+      command += '_on_off'
+    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*253) + 1, time=TRANSITION_TIME)
 
   async def hue(self, hue):
     if not self._device:
@@ -165,12 +163,14 @@ class ZigBeeLightGroup(LightGroup):
     await super().toggle()
     await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'toggle', timeout=5)
 
-  async def level(self, level=None, delta=None):
+  async def level(self, level=None, delta=None, onoff=False):
     if not self._group:
       return
     await super().level(level, delta)
-    print('new group level', self._level)
-    await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level', timeout=5, level=int(self._level*253) + 1, time=TRANSITION_TIME)
+    command = 'move_to_level'
+    if onoff:
+      command += '_on_off'
+    await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*253) + 1, time=TRANSITION_TIME)
 
   async def hue(self, hue):
     if not self._group:

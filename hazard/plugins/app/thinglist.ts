@@ -1,5 +1,5 @@
 import { List, ClickableListItem, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, FontStyle, FocusTextBox, Control, TextBox, TextAlign, MenuItems, MenuItem, PromptDialog } from "canvas-forms";
-import { Thing, Switch, Light, SwitchButton } from "./hazard";
+import { Thing, Switch, Light, SwitchButton, Clock } from "./hazard";
 import { sortBy } from "./utils";
 
 class ThingAction extends ListItem<Thing> {
@@ -178,6 +178,32 @@ class ThingActionSwitch extends ThingAction {
   }
 }
 
+class ThingActionClock extends ThingAction {
+  constructor(thing: Clock) {
+    super(thing);
+
+    let l = this.add(new Label('Interval (s)'), 20, 20, 160);
+    const interval = this.add(new TextBox(thing.interval.toString()), 180, 20, 200);
+
+    l = this.add(new Label('Code'), 20, 70, 100);
+    const code = this.add(new TextBox(thing.code), 20, 110, null, 360, 20);
+    code.multiline = true;
+    code.fontName = 'monospace';
+
+    code.change.add(() => {
+      thing.code = code.text;
+      thing.save();
+    }, 1000);
+
+    interval.change.add(() => {
+      thing.interval = parseInt(interval.text, 10);
+      thing.save();
+    });
+  }
+}
+
+
+
 export class ThingDialog extends Dialog {
   constructor(readonly thing: Thing) {
     super();
@@ -211,6 +237,9 @@ export class ThingDialog extends Dialog {
     }
     if (thing.hasFeature('switch')) {
       list.addItem(thing as Switch, ThingActionSwitch);
+    }
+    if (thing.hasFeature('clock')) {
+      list.addItem(thing as Clock, ThingActionClock);
     }
 
     const close = this.add(new Button('Close'), { y2: 20, w: 160 });
@@ -248,6 +277,8 @@ class ThingListItem extends ClickableListItem<Thing> {
       icon.icon = Ionicons.Bulb;
     } else if (thing.hasFeature('switch')) {
       icon.icon = Ionicons.Switch;
+    } else if (thing.hasFeature('clock')) {
+      icon.icon = Ionicons.Clock;
     }
     if (thing.hasFeature('light')) {
       icon.color = (thing as Light).on ? 'orange' : 'black';

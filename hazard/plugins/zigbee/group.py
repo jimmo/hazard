@@ -49,10 +49,10 @@ class ZigBeeGroup():
 
   async def zcl_cluster(self, profile, dest_endpoint, cluster_name, command_name, timeout=5, **kwargs):
     seq = self._next_seq()
-    cluster, data = zcl.spec.encode_cluster_command(cluster_name, command_name, seq, 0, **kwargs)
+    cluster, data = zcl.spec.encode_cluster_command(cluster_name, command_name, seq, direction=0, default_response=False, **kwargs)
     return await self._send(seq, 1, dest_endpoint, cluster, profile, data, timeout)
 
   async def zcl_profile(self, profile, dest_endpoint, cluster_name, command_name, timeout=5, **kwargs):
     seq = self._next_seq()
-    cluster, data = zcl.spec.encode_profile_command(cluster_name, command_name, seq, 0, **kwargs)
+    cluster, data = zcl.spec.encode_profile_command(cluster_name, command_name, seq, direction=0, default_response=False, **kwargs)
     return await self._send(seq, 1, dest_endpoint, cluster, profile, data, timeout)

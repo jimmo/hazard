@@ -13,8 +13,11 @@ class MapThing extends Control {
       l.icon = Ionicons.Bulb;
     } else if (thing.hasFeature('switch')) {
       l.icon = Ionicons.Switch;
+    } else if (thing.hasFeature('clock')) {
+      l.icon = Ionicons.Clock;
     } else {
       l.text = thing.name;
+      l.fontSize = 18;
     }
 
     if (thing.hasFeature('light')) {

@@ -1,5 +1,6 @@
 import aiohttp.web
 import json
+import datetime
 
 from hazard.thing import create_thing, create_thing_from_json
 import hazard.things
@@ -33,7 +34,7 @@ class Hazard:
         self._tseq = max(t.id() + 1, self._tseq)
         self._things[t.id()] = t
       for a in config.get('actions', []):
-        print('Action: {}'.format(t))
+        print('Action: {}'.format(a))
         action = Action(self)
         action.load_json(a)
         self._aseq = max(action.id() + 1, self._aseq)
@@ -116,10 +117,28 @@ class Hazard:
     if not code:
       return
     
-    code = 'async def __code():\n  import asyncio\n' + '\n'.join('  ' + line for line in code.split('\n')) + '\n\nimport asyncio\nasyncio.get_event_loop().create_task(__code())\n'
+    code = '''
+import asyncio
+async def __code():
+  import sys
+  import asyncio
+  import datetime
+  import time
+  import os
+  try:
+''' + '\n'.join('    ' + line for line in code.split('\n')) + '''
+  except Exception as e:
+    import sys
+    t,v,tb = sys.exc_info()
+    print("Error in event handler: {}: {}".format(t.__name__, v))
+
+asyncio.get_event_loop().create_task(__code())
+'''
     exec(code, {
       'action': self.find_action,
       'thing': self.find_thing,
+      'hour': lambda: datetime.datetime.now().hour,
+      'minute': lambda: datetime.datetime.now().minute,
     }, {
       'self': self,
     })

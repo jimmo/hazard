@@ -204,7 +204,7 @@ class XBeeModule(ZigBeeModule):
     self._frame_id = (self._frame_id + 1) % 256 or 1
 
     f = asyncio.Future()
-    print(len(self._inflight))
+    #print(len(self._inflight))
     self._inflight[frame_id] = f
     #print('frame', data)
     self._protocol._transport.write(data)
@@ -212,7 +212,7 @@ class XBeeModule(ZigBeeModule):
       async with async_timeout.timeout(timeout):
         return await f
     except asyncio.TimeoutError:
-      raise ZigBeeTimeout()
+      raise ZigBeeTimeout() from None
     finally:
       del self._inflight[frame_id]
 

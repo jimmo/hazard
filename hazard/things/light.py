@@ -17,7 +17,7 @@ class LightBase:
   async def toggle(self):
     self._on = not self._on
 
-  async def level(self, level=None, delta=None):
+  async def level(self, level=None, delta=None, onoff=False):
     if level is not None:
       self._level = min(1, max(0, level))
     elif delta is not None:

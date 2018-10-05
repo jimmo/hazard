@@ -127,7 +127,7 @@ class XBeeModule(ZigBeeModule):
     return await self._tx_explicit(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data)
 
   async def multicast(self, group_addr, source_endpoint, dest_endpoint, cluster, profile, data):
-    return await self._tx_explicit(0xffffffffffffffff, group_addr, source_endpoint, dest_endpoint, cluster, profile, data, multicast=True)
+    return await self._tx_explicit(0xffffffffffffffff, group_addr, source_endpoint, dest_endpoint, cluster, profile, data, multicast=True, retries=False)
 
   async def broadcast(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     return await self._tx_explicit(0x000000000000ffff, 0xffff, source_endpoint, dest_endpoint, cluster, profile, data)
@@ -150,7 +150,9 @@ class XBeeModule(ZigBeeModule):
     if extended_timeout:
       opt |= 0x40
     data = struct.pack('>QHBBHHBB', addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, radius, opt) + data
+    #print('tx explicit ', hex(addr64), hex(addr16))
     response = await self._send_frame(0x11, data)
+    #print('tx explicit response ', hex(addr64), hex(addr16))
     #print(response)
     sent_addr16, retry_count, delivery_status, discovery_status, = struct.unpack('>HBBB', response)
     #print('tx response', sent_addr16, retry_count, delivery_status, discovery_status)
@@ -190,12 +192,12 @@ class XBeeModule(ZigBeeModule):
     else:
       print('Unknown frame type: 0x{:02x}'.format(frame_type,))
 
-  async def _send_frame(self, frame_type, data, timeout=5, reply=True):
+  async def _send_frame(self, frame_type, data, timeout=5):
     #while self._rx:
     #  self._rx = False
     #  await asyncio.sleep(0.1)
       
-    # while len(self._inflight) > 2:
+    # while len(self._inflight) > 1:
     #   await asyncio.sleep(0.1)
 
     data = struct.pack('BB', frame_type, self._frame_id) + data

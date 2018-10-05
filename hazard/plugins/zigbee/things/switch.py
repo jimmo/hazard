@@ -12,12 +12,12 @@ class ZigBeeSwitch(Switch):
 
   async def _on_zcl(self, source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs):
     print('switch', source_endpoint, dest_endpoint, cluster_name, command_type, command_name, repr(kwargs))
-    code = json.dumps({
+    code = {
       'endpoint': source_endpoint,
       'cluster': cluster_name,
       'command': command_name,
       'args': kwargs,
-    })
+    }
     await self.get_button(code).invoke()
 
   async def create_from_device(self, device):

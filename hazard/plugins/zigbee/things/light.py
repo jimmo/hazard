@@ -92,6 +92,25 @@ class ZigBeeLight(Light):
     mireds = int(1e6 / temperature)
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_color_temperature', timeout=5, mireds=mireds, time=TRANSITION_TIME)
 
+  async def disable_reporting(self):
+    await self._device.zcl_profile(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'configure_reporting', timeout=5, configs=[
+      {
+        'attribute': 0,
+        'datatype': 'uint8',
+        'minimum': 0xffff,
+        'maximum': 0x0000,
+        'delta': 10,
+      }
+    ])
+    await self._device.zcl_profile(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'configure_reporting', timeout=5, configs=[
+      {
+        'attribute': 0,
+        'datatype': 'bool',
+        'minimum': 0xffff,
+        'maximum': 0x0000,
+      }
+    ])
+
   async def configure_reporting(self):
     await self._device.zcl_profile(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'configure_reporting', timeout=5, configs=[
       {

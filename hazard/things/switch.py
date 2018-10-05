@@ -1,5 +1,6 @@
 import async_timeout
 import asyncio
+import json
 
 from hazard.thing import Thing, register_thing
 
@@ -8,7 +9,7 @@ DOUBLE_TAP_TIMEOUT = 0.4
 
 
 class SwitchButton:
-  def __init__(self, switch, code=''):
+  def __init__(self, switch, code={}):
     self._switch = switch
     self._name = code
     self._code = code
@@ -16,11 +17,13 @@ class SwitchButton:
     self._double = ''
     self._waiting_for_double = None
 
-  def load_json(self, json):
-    self._name = json.get('name', '')
-    self._code = json.get('code', '')
-    self._single = json.get('single', '')
-    self._double = json.get('double', '')
+  def load_json(self, obj):
+    self._name = obj.get('name', '')
+    self._code = obj.get('code', {})
+    if isinstance(self._code, str):
+      self._code = json.loads(self._code)
+    self._single = obj.get('single', '')
+    self._double = obj.get('double', '')
 
   def to_json(self):
     return {
@@ -71,21 +74,21 @@ class Switch(Thing):
     super().__init__(hazard)
     self._buttons = []
 
-  def load_json(self, json):
-    super().load_json(json)
+  def load_json(self, obj):
+    super().load_json(obj)
     self._buttons = []
-    for b in json.get('buttons', []):
+    for b in obj.get('buttons', []):
       btn = SwitchButton(self)
       btn.load_json(b)
       self._buttons.append(btn)
 
   def to_json(self):
-    json = super().to_json()
-    json.update({
+    obj = super().to_json()
+    obj.update({
       'json_type': 'Switch',
       'buttons': [b.to_json() for b in self._buttons],
     })
-    return json
+    return obj
 
   def _features(self):
     return super()._features() + ['switch',]

@@ -17,6 +17,7 @@ class ZigBeeDevice():
     self._seq = 1
     self._inflight = {}
     self._on_zcl_callback = None
+    self._recent_seq = []
 
   def register_zcl(self, callback):
     self._on_zcl_callback = callback
@@ -44,7 +45,12 @@ class ZigBeeDevice():
     print('ZCL from "{}": {} {} {} {} {} {} {}\n    {}'.format(self._name, source_endpoint, dest_endpoint, seq, profile, cluster_name, command_type, command_name, kwargs))
     if seq in self._inflight:
       self._inflight[seq].set_result((command_name, kwargs,))
-    elif self._on_zcl_callback:
+      return
+    if seq in self._recent_seq:
+      print('Ignoring duplicate ZCL')
+      return
+    self._recent_seq = self._recent_seq[-50:] + [seq]
+    if self._on_zcl_callback:
       asyncio.get_event_loop().create_task(self._on_zcl_callback(source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs))
 
   def _next_seq(self):

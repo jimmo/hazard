@@ -46,14 +46,14 @@ class XBeeProtocol(asyncio.Protocol):
       if self._data[i] == 0x7e:
         data_len, = struct.unpack('>H', self._data[i+1:i+3])
         frame_len = data_len + 4
-        if i + frame_len < len(self._data):
+        if i + frame_len > len(self._data):
           continue
         data = self._data[i + 3:i + frame_len - 1]
         chk = self._checksum(data)
-        if len(self._data) > i + frame_len - 1 and chk == self._data[i + frame_len - 1]:
+        if chk == self._data[i + frame_len - 1]:
           self._xbee_module._on_frame(data)
         else:
-          print('bad frame', data)
+          print('bad frame checksum at', i, data)
         self._data = self._data[i + frame_len:]
         i = 0
 

@@ -1,9 +1,12 @@
+import logging
+
 import zcl.spec
 
 from hazard.plugins.zigbee.common import ZigBeeDeliveryFailure
 from hazard.plugins.zigbee.device import ZigBeeDevice
 from hazard.plugins.zigbee.group import ZigBeeGroup
 
+LOG = logging.getLogger('zigbee')
 
 class ZigBeeNetwork():
   def __init__(self, hazard, module):
@@ -39,10 +42,11 @@ class ZigBeeNetwork():
           addr64 = d.addr64()
           break
       else:
-        print('Message from unknown 2^64-1 addr.')
+        LOG.error('Message from unknown 2^64-1 addr.')
         return
-          
+
     if addr64 not in self._devices:
+      LOG.info('Frame from unknown device %016x/%04x sep=%d dep=%d cluster=%d profile=%d', addr64, addr16, source_endpoint, dest_endpoint, cluster, profile)
       self._devices[addr64] = ZigBeeDevice(self, addr64, addr16)
     self._devices[addr64]._on_frame(addr16, source_endpoint, dest_endpoint, cluster, profile, data)
     self._hazard.save()
@@ -60,7 +64,7 @@ class ZigBeeNetwork():
 
   def find_group(self, addr16):
     return self._groups.get(addr16, None)
-  
+
   def remove_group(self, addr16):
     del self._groups[addr16]
 

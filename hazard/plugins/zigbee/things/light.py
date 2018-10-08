@@ -1,3 +1,5 @@
+import logging
+
 from hazard.thing import register_thing
 from hazard.things import Light, LightGroup
 
@@ -6,6 +8,8 @@ import zcl.spec
 import random
 
 TRANSITION_TIME = 0
+
+LOG = logging.getLogger('zigbee')
 
 
 @register_thing
@@ -26,37 +30,46 @@ class ZigBeeLight(Light):
       desc = desc['simple_descriptors'][0]
       self._endpoint = desc['endpoint']
       break
-    
+
   async def _on_zcl(self, source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs):
     if command_type == zcl.spec.ZclCommandType.PROFILE and command_name == 'report_attributes':
       if cluster_name == 'onoff':
         self._on = bool(kwargs['attributes'][0]['value'])
+        LOG.info('Update "%s" onoff=%s', self._name, self._on)
       elif cluster_name == 'level_control':
         self._level = (kwargs['attributes'][0]['value'] - 1) / 253
+        LOG.info('Update "%s" level=%f', self._name, self._level)
       elif cluster_name == 'color':
         if kwargs['attributes'][0]['attribute'] == 7:
           mireds = kwargs['attributes'][0]['value']
           self._temperature = int(1e6 / mireds)
+          LOG.info('Update "%s" temperature=%f', self._name, self._temperature)
         elif kwargs['attributes'][0]['attribute'] == 1:
           self._saturation = kwargs['attributes'][0]['value'] / 255
+          LOG.info('Update "%s" saturation=%f', self._name, self._saturation)
         elif kwargs['attributes'][0]['attribute'] == 0:
           self._hue = kwargs['attributes'][0]['value'] / 255
+          LOG.info('Update "%s" hue=%f', self._name, self._hue)
       else:
-        print('light attribute', source_endpoint, dest_endpoint, cluster_name, command_type, command_name, repr(kwargs))
+        LOG.error('unknown light attribute', source_endpoint, dest_endpoint, cluster_name, command_type, command_name, repr(kwargs))
 
 
   async def on(self):
     if not self._device:
       return
     await super().on()
+    LOG.debug('Sending ON command to "%s"', self._name)
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
+    LOG.debug(' --> done ("%s")', self._name)
 
   async def off(self):
     if not self._device:
       return
     await super().off()
     #await self.configure_reporting()
+    LOG.debug('Sending ON command to "%s"', self._name)
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
+    LOG.debug(' --> done ("%s")', self._name)
 
   async def toggle(self):
     if not self._device:
@@ -131,9 +144,9 @@ class ZigBeeLight(Light):
     ])
 
   async def reconfigure(self):
-    print('Reconfigure', self.name())
+    await super().reconfigure()
     await self.configure_reporting()
-    
+
   def to_json(self):
     json = super().to_json()
     json.update({
@@ -168,13 +181,17 @@ class ZigBeeLightGroup(LightGroup):
     if not self._group:
       return
     await super().on()
+    LOG.debug('Sending ON command to group "%s"', self._name)
     await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
+    LOG.debug(' --> done ("%s")', self._name)
 
   async def off(self):
     if not self._group:
       return
     await super().off()
+    LOG.debug('Sending OFF command to group "%s"', self._name)
     await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
+    LOG.debug(' --> done ("%s")', self._name)
 
   async def toggle(self):
     if not self._group:

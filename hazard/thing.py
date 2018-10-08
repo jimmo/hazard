@@ -84,7 +84,7 @@ class ThingBase:
     self._hazard.remove_thing(self)
 
   async def reconfigure(self):
-    pass
+    LOG.info('Reconfigure "%s"', self.name())
 
 
 class Thing(ThingBase):

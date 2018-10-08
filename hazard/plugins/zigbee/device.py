@@ -1,10 +1,12 @@
 import asyncio
 import async_timeout
+import logging
 
 from hazard.plugins.zigbee.common import ZigBeeDeliveryFailure, ZigBeeTimeout
 
 import zcl.spec
 
+LOG = logging.getLogger('zigbee')
 
 class ZigBeeDevice():
   def __init__(self, network, addr64=0, addr16=0, name=''):
@@ -24,7 +26,7 @@ class ZigBeeDevice():
 
   def _on_frame(self, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     if addr16 != self._addr16:
-      print('Updating addr16 on {} (rx: 0x{:04x}, config: 0x{:04x})'.format(self.addr64hex(), addr16, self._addr16))
+      LOG.info('Updating addr16 on {} (rx: 0x{:04x}, config: 0x{:04x})'.format(self.addr64hex(), addr16, self._addr16))
       self._addr16 = addr16
       self._network._hazard.save()
     if profile == zcl.spec.Profile.ZIGBEE and dest_endpoint == zcl.spec.Endpoint.ZDO:
@@ -34,7 +36,7 @@ class ZigBeeDevice():
 
   def _on_zdo(self, cluster, data):
     cluster_name, seq, kwargs = zcl.spec.decode_zdo(cluster, data)
-    print('ZDO from "{}": {} {}\n   {}'.format(self._name, seq, cluster_name, kwargs))
+    LOG.info('ZDO from "{}": {} {}\n   {}'.format(self._name, seq, cluster_name, kwargs))
 
     if seq in self._inflight:
       #print('  delivering future')
@@ -42,12 +44,12 @@ class ZigBeeDevice():
 
   def _on_zcl(self, source_endpoint, dest_endpoint, cluster, profile, data):
     cluster_name, seq, command_type, command_name, kwargs = zcl.spec.decode_zcl(cluster, data)
-    print('ZCL from "{}": {} {} {} {} {} {} {}\n    {}'.format(self._name, source_endpoint, dest_endpoint, seq, profile, cluster_name, command_type, command_name, kwargs))
+    LOG.info('ZCL from "{}": {} {} {} {} {} {} {} {}'.format(self._name, source_endpoint, dest_endpoint, seq, profile, cluster_name, command_type, command_name, kwargs))
     if seq in self._inflight:
       self._inflight[seq].set_result((command_name, kwargs,))
       return
     if seq in self._recent_seq:
-      print('Ignoring duplicate ZCL')
+      LOG.info('Ignoring duplicate ZCL')
       return
     self._recent_seq = self._recent_seq[-50:] + [seq]
     if self._on_zcl_callback:

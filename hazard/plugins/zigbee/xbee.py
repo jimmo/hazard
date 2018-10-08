@@ -53,7 +53,7 @@ class XBeeProtocol(asyncio.Protocol):
         if chk == self._data[i + frame_len - 1]:
           self._xbee_module._on_frame(data)
         else:
-          print('bad frame checksum at', i, data)
+          LOG.error('bad frame checksum at %d: %s', i, repr(data))
         self._data = self._data[i + frame_len:]
         i = 0
 
@@ -135,7 +135,7 @@ class XBeeModule(ZigBeeModule):
   async def allow_joining(self, allow):
     await self._send_at('NJ', 0xff if allow else 0)
     result = await self._send_at('NJ')
-    print('Allow joining: ', result > 0)
+    LOG.warning('Allow joining: ', result > 0)
 
   async def _tx_explicit(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data, radius=0, retries=True, indirect=False, multicast=False, aps=False, extended_timeout=False):
     opt = 0
@@ -161,7 +161,7 @@ class XBeeModule(ZigBeeModule):
 
   def _on_frame(self, data):
     if len(data) < 2:
-      print('Frame too small')
+      LOG.error('Frame too small')
       return
     #print(data)
     frame_type, = struct.unpack('B', data[:1])
@@ -187,16 +187,16 @@ class XBeeModule(ZigBeeModule):
         self._on_device_frame(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data)
       except Exception as e:
         import traceback
-        print('Error in device frame handler')
-        print(traceback.print_exc())
+        LOG.error('Error in device frame handler')
+        LOG.error(traceback.print_exc())
     else:
-      print('Unknown frame type: 0x{:02x}'.format(frame_type,))
+      LOG.error('Unknown frame type: 0x{:02x}'.format(frame_type,))
 
   async def _send_frame(self, frame_type, data, timeout=5):
     #while self._rx:
     #  self._rx = False
     #  await asyncio.sleep(0.1)
-      
+
     # while len(self._inflight) > 1:
     #   await asyncio.sleep(0.1)
 
@@ -225,7 +225,7 @@ class XBeeModule(ZigBeeModule):
       req += struct.pack(t, val)
     resp = await self._send_frame(0x08, req)
     if resp[0:2] != req[0:2]:
-      print('Unexpected AT response')
+      LOG.error('Unexpected AT response: resp=%s, req=%s', repr(resp), repr(req))
     if resp[2] != 0x00:
       raise ValueError('Invalid AT request')
     else:
@@ -240,7 +240,6 @@ class XBeeModule(ZigBeeModule):
         await asyncio.sleep(0.1)
       try:
         result = await self._send_at('NC')
-        print('Ping response', hex(result))
+        LOG.debug('Ping response', hex(result))
       except ZigBeeTimeout:
-        print('Ping timeout')
-      #await self._tx_explicit(1403434233899801417, 63488, 1, 1, )
+        LOG.debug('Ping timeout')

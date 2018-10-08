@@ -1,11 +1,14 @@
 import async_timeout
 import asyncio
 import json
+import logging
 
 from hazard.thing import Thing, register_thing
 
 
 DOUBLE_TAP_TIMEOUT = 0.4
+
+LOG = logging.getLogger('zigbee')
 
 
 class SwitchButton:
@@ -40,8 +43,9 @@ class SwitchButton:
 
   def code(self):
     return self._code
-    
+
   async def invoke(self):
+    LOG.info('Invoking "%s/%s"', self._switch._name, self._name)
     if not self._double:
       return await self.single()
 
@@ -62,9 +66,11 @@ class SwitchButton:
       self._waiting_for_double = None
 
   async def single(self):
+    LOG.info('Single tap on "%s/%s"', self._switch._name, self._name)
     self._switch._hazard.execute(self._single)
 
   async def double(self):
+    LOG.info('Double tap on "%s/%s"', self._switch._name, self._name)
     self._switch._hazard.execute(self._double)
 
 

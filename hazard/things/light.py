@@ -1,4 +1,8 @@
+import logging
+
 from hazard.thing import Thing, ThingGroup, register_thing
+
+LOG = logging.getLogger('thing')
 
 class LightBase:
   def __init__(self):
@@ -10,12 +14,15 @@ class LightBase:
 
   async def on(self):
     self._on = True
+    LOG.info('Setting "%s" to ON', self._name)
 
   async def off(self):
     self._on = False
+    LOG.info('Setting "%s" to OFF', self._name)
 
   async def toggle(self):
     self._on = not self._on
+    LOG.info('Setting "%s" to %s', self._name, 'ON' if self._on else 'OFF')
 
   async def level(self, level=None, delta=None, onoff=False):
     if level is not None:
@@ -24,6 +31,7 @@ class LightBase:
       if self._level is None:
         self._level = 0.5
       self._level = min(1, max(0, self._level + delta))
+    LOG.info('Setting "%s" level to %f', self._name, self._level)
 
   async def hue(self, hue):
     self._hue = hue

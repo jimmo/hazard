@@ -1,3 +1,7 @@
+import logging
+
+LOG = logging.getLogger('zigbee')
+
 class ZigBeeModule():
   def __init__(self):
     self._callbacks= {}
@@ -44,4 +48,4 @@ class ZigBeeModule():
     elif self._unknown:
       self._unknown(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data)
     else:
-      print('Frame from {}/{} {} {} {} {} -- {}'.format(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data))
+      LOG.warning('Frame from {}/{} {} {} {} {} -- {}'.format(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data))

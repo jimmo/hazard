@@ -44,6 +44,15 @@ class Light(Thing):
   async def saturation(self, saturation):
     self._saturation = saturation
 
+  async def on_level(self):
+    if self._on:
+      if self._level < 0.5:
+        await self.level(level=1, onoff=True)
+      else:
+        await self.level(level=0.05, onoff=True)
+    else:
+      await self.on()
+
   def to_json(self):
     obj = super().to_json()
     obj.update({

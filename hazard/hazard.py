@@ -2,6 +2,7 @@ import aiohttp.web
 import json
 import datetime
 import logging
+import urllib.request
 
 from hazard.thing import create_thing, create_thing_from_json
 import hazard.things
@@ -115,6 +116,19 @@ class Hazard:
     self._actions[action.id()] = action
     return action
 
+  async def http_get(self, url):
+    req = urllib.request.Request(url, headers=headers, data=data, method='GET')
+    try:
+      urllib.request.urlopen(req)
+    except:
+      pass
+
+  async def http_post(self, url, headers={}, data=None):
+    req = urllib.request.Request(url, headers=headers, data=data, method='POST')
+    try:
+      urllib.request.urlopen(req)
+    except:
+      pass
 
   def execute(self, code):
     if not code.strip():
@@ -145,6 +159,8 @@ asyncio.get_event_loop().create_task(__code())
       'thing': self.find_thing,
       'hour': lambda: datetime.datetime.now().hour,
       'minute': lambda: datetime.datetime.now().minute,
+      'http_get': self.http_get,
+      'http_post': self.http_post,
     }, {
       'self': self,
     })

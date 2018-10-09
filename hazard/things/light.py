@@ -1,11 +1,13 @@
 import logging
 
-from hazard.thing import Thing, ThingGroup, register_thing
+from hazard.thing import Thing, register_thing
 
 LOG = logging.getLogger('thing')
 
-class LightBase:
-  def __init__(self):
+@register_thing
+class Light(Thing):
+  def __init__(self, hazard):
+    super().__init__(hazard)
     self._on = False
     self._level = 0.6
     self._hue = None
@@ -43,19 +45,24 @@ class LightBase:
     self._saturation = saturation
 
   def to_json(self):
-    return {
+    obj = super().to_json()
+    obj.update({
+      'json_type': 'Light',
       'on': self._on,
       'level': self._level,
       'hue': self._hue,
       'temperature': self._temperature,
       'saturation': self._saturation,
-    }
+    })
+    return obj
 
-@register_thing
-class Light(Thing, LightBase):
-  def __init__(self, hazard):
-    Thing.__init__(self, hazard)
-    LightBase.__init__(self)
+  def load_json(self, obj):
+    super().load_json(obj)
+    self._on = obj.get('on', False)
+    self._level = obj.get('on', 0.6)
+    self._hue = obj.get('on', None)
+    self._temperature = obj.get('on', None)
+    self._saturation = obj.get('saturation', None)
 
   def _features(self):
     features = super()._features() + ['light'];
@@ -68,29 +75,3 @@ class Light(Thing, LightBase):
     if self._saturation is not None:
       features.append('light-saturation')
     return features
-
-  def to_json(self):
-    json = super().to_json()
-    json.update(LightBase.to_json(self))
-    json.update({
-      'json_type': 'Light',
-    })
-    return json
-
-
-@register_thing
-class LightGroup(ThingGroup, LightBase):
-  def __init__(self, hazard):
-    ThingGroup.__init__(self, hazard)
-    LightBase.__init__(self)
-
-  def _features(self):
-    return super()._features() + ['light', 'light-level', 'light-temperature',]
-
-  def to_json(self):
-    json = super().to_json()
-    json.update(LightBase.to_json(self))
-    json.update({
-      'json_type': 'Light',
-    })
-    return json

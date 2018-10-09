@@ -1,7 +1,7 @@
 import logging
 
 from hazard.thing import register_thing
-from hazard.things import Light, LightGroup
+from hazard.things import Light
 
 import zcl.spec
 
@@ -164,7 +164,7 @@ class ZigBeeLight(Light):
 
 
 @register_thing
-class ZigBeeLightGroup(LightGroup):
+class ZigBeeLightGroup(Light):
   def __init__(self, hazard):
     super().__init__(hazard)
     self._group = None
@@ -233,3 +233,6 @@ class ZigBeeLightGroup(LightGroup):
     super().load_json(json)
     self._group = self._hazard.find_plugin('ZigBeePlugin').network().find_group(json['group'])
     self._endpoint = json['endpoint']
+
+  def _features(self):
+    return super()._features() + ['group'];

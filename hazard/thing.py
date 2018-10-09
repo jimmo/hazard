@@ -40,7 +40,7 @@ class ThingLocation:
     self.y = json.get('y', 0)
 
 
-class ThingBase:
+class Thing:
   def __init__(self, hazard):
     self._hazard = hazard
     self._id = None
@@ -87,34 +87,21 @@ class ThingBase:
     LOG.info('Reconfigure "%s"', self.name())
 
 
-class Thing(ThingBase):
-  def __init__(self, hazard):
-    super().__init__(hazard)
+# class ThingGroup(ThingBase):
+#   def __init__(self, hazard):
+#     super().__init__(hazard)
+#     self._size = { 'w': 100, 'h': 100 }
 
-  def load_json(self, json):
-    super().load_json(json)
+#   def load_json(self, json):
+#     super().load_json(json)
+#     self._size = json.get('size', {'w': 100, 'h': 100})
 
-  def to_json(self):
-    json = super().to_json()
-    json.update({})
-    return json
+#   def to_json(self):
+#     json = super().to_json()
+#     json.update({
+#       'size': self._size,
+#     })
+#     return json
 
-
-class ThingGroup(ThingBase):
-  def __init__(self, hazard):
-    super().__init__(hazard)
-    self._size = { 'w': 100, 'h': 100 }
-
-  def load_json(self, json):
-    super().load_json(json)
-    self._size = json.get('size', {'w': 100, 'h': 100})
-
-  def to_json(self):
-    json = super().to_json()
-    json.update({
-      'size': self._size,
-    })
-    return json
-
-  def _features(self):
-    return ['group']
+#   def _features(self):
+#     return ['group']

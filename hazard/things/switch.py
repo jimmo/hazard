@@ -16,6 +16,7 @@ class SwitchButton:
     self._switch = switch
     self._name = code
     self._code = code
+    self._tap = ''
     self._single = ''
     self._double = ''
     self._waiting_for_double = None
@@ -25,6 +26,7 @@ class SwitchButton:
     self._code = obj.get('code', {})
     if isinstance(self._code, str):
       self._code = json.loads(self._code)
+    self._tap = obj.get('tap', '')
     self._single = obj.get('single', '')
     self._double = obj.get('double', '')
 
@@ -34,6 +36,7 @@ class SwitchButton:
       'json_type': 'SwitchButton',
       'code': self._code,
       'name': self._name,
+      'tap': self._tap,
       'single': self._single,
       'double': self._double,
     }
@@ -47,6 +50,7 @@ class SwitchButton:
   async def invoke(self):
     LOG.info('Invoking "%s/%s"', self._switch._name, self._name)
     if not self._double:
+      await self.tap()
       return await self.single()
 
     if self._waiting_for_double:
@@ -58,12 +62,17 @@ class SwitchButton:
 
     try:
       async with async_timeout.timeout(DOUBLE_TAP_TIMEOUT):
+        await self.tap()
         await self._waiting_for_double
     except asyncio.TimeoutError:
       await self.single()
     finally:
       self._waiting_for_double.cancel()
       self._waiting_for_double = None
+
+  async def tap(self):
+    LOG.info('Tap on "%s/%s"', self._switch._name, self._name)
+    self._switch._hazard.execute(self._tap)
 
   async def single(self):
     LOG.info('Single tap on "%s/%s"', self._switch._name, self._name)

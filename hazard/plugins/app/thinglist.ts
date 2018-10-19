@@ -100,16 +100,23 @@ class ThingActionSwitchButtonCodeDialog extends Dialog {
     single.fontName = 'monospace';
     single.multiline = true;
 
-    l = this.add(new Label('Double'), 10, 180);
+    l = this.add(new Label('Double'), 10, 10 + 170);
     l.fit = true;
-    const double = this.add(new TextBox(button.double), { x: 10, y: 210, x2: 10, h: 120 });
+    const double = this.add(new TextBox(button.double), { x: 10, y: 40 + 170, x2: 10, h: 120 });
     double.fontName = 'monospace';
     double.multiline = true;
+
+    l = this.add(new Label('Tap'), 10, 10 + 170 * 2);
+    l.fit = true;
+    const tap = this.add(new TextBox(button.tap), { x: 10, y: 40 + 170 * 2, x2: 10, h: 120 });
+    tap.fontName = 'monospace';
+    tap.multiline = true;
 
     this.add(new Button('Cancel'), { x2: 20, y2: 20 }).click.add(() => {
       this.close(null);
     });
     this.add(new Button('OK'), { x2: 190, y2: 20 }).click.add(() => {
+      this.button.tap = tap.text;
       this.button.single = single.text;
       this.button.double = double.text;
       this.thing.save();
@@ -121,7 +128,7 @@ class ThingActionSwitchButtonCodeDialog extends Dialog {
     // Override Dialog default which centers a fixed width/height dialog in the form.
     this.coords.x.set(20);
     this.coords.x2.set(20);
-    this.coords.h.set(450)
+    this.coords.h.set(650)
     this.coords.center(CoordAxis.Y);
   }
 

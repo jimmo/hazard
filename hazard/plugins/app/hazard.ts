@@ -131,6 +131,7 @@ Serializer.register(Switch);
 export class SwitchButton {
   code: string;
   name: string;
+  tap: string;
   single: string;
   double: string;
 }

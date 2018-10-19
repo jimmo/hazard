@@ -154,7 +154,7 @@ class XBeeModule(ZigBeeModule):
       opt |= 0x40
     data = struct.pack('>QHBBHHBB', addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, radius, opt) + data
     #print('tx explicit ', hex(addr64), hex(addr16))
-    response = await self._send_frame(0x11, data)
+    response = await self._send_frame(0x11, data, status=not multicast)
     #print('tx explicit response ', hex(addr64), hex(addr16))
     #print(response)
     sent_addr16, retry_count, delivery_status, discovery_status, = struct.unpack('>HBBB', response)
@@ -178,6 +178,8 @@ class XBeeModule(ZigBeeModule):
       data = data[1:]
       if frame_id in self._inflight:
         self._inflight[frame_id].set_result(data)
+      else:
+        LOG.error('Reply for unknown frame id: 0x{:02x}'.format(frame_id))
     elif frame_type == 0x91:
       # Explicit RX Indicator Frame
       addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, opt = struct.unpack('>QHBBHHB', data[:17])
@@ -195,7 +197,7 @@ class XBeeModule(ZigBeeModule):
     else:
       LOG.error('Unknown frame type: 0x{:02x}'.format(frame_type,))
 
-  async def _send_frame(self, frame_type, data, timeout=5):
+  async def _send_frame(self, frame_type, data, timeout=5, status=True):
     #while self._rx:
     #  self._rx = False
     #  await asyncio.sleep(0.1)
@@ -203,23 +205,33 @@ class XBeeModule(ZigBeeModule):
     # while len(self._inflight) > 1:
     #   await asyncio.sleep(0.1)
 
-    data = struct.pack('BB', frame_type, self._frame_id) + data
-    data = b'\x7e' + struct.pack('>H', len(data)) + data + struct.pack('B', self._protocol._checksum(data))
-    frame_id = self._frame_id
-    self._frame_id = (self._frame_id + 1) % 256 or 1
+    if status:
+      frame_id = self._frame_id
+      self._frame_id = (self._frame_id + 1) % 256 or 1
+    else:
+      frame_id = 0
 
-    f = asyncio.Future()
-    #print(len(self._inflight))
-    self._inflight[frame_id] = f
-    #print('frame', data)
-    self._protocol._transport.write(data)
-    try:
-      async with async_timeout.timeout(timeout):
-        return await f
-    except asyncio.TimeoutError:
-      raise ZigBeeTimeout() from None
-    finally:
-      del self._inflight[frame_id]
+    data = struct.pack('BB', frame_type, frame_id) + data
+    data = b'\x7e' + struct.pack('>H', len(data)) + data + struct.pack('B', self._protocol._checksum(data))
+
+    #print('sending', data)
+
+    if status:
+      f = asyncio.Future()
+      #print(len(self._inflight))
+      self._inflight[frame_id] = f
+      #print('frame', data)
+      self._protocol._transport.write(data)
+      try:
+        async with async_timeout.timeout(timeout):
+          return await f
+      except asyncio.TimeoutError:
+        raise ZigBeeTimeout() from None
+      finally:
+        del self._inflight[frame_id]
+    else:
+      self._protocol._transport.write(data)
+      return struct.pack('>HBBB', 0xfffd, 0, 0, 0)
 
   async def _send_at(self, command, val=None):
     t = STRUCT_TYPES[AT_COMMANDS[command]]

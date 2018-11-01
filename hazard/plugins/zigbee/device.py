@@ -76,18 +76,19 @@ class ZigBeeDevice():
 
     f = asyncio.Future()
     self._inflight[seq] = f
-    try:
+    
       #print(hex(seq))
-      result = await self._network._module.unicast(self._addr64, self._addr16, source_endpoint, dest_endpoint, cluster, profile, data)
-      if not result:
-        f.cancel()
-        raise ZigBeeDeliveryFailure()
+    result = await self._network._module.unicast(self._addr64, self._addr16, source_endpoint, dest_endpoint, cluster, profile, data)
+    if not result:
+      f.cancel()
+      del self._inflight[seq]
+      raise ZigBeeDeliveryFailure()
 
-      try:
-        async with async_timeout.timeout(timeout):
-          return await f
-      except asyncio.TimeoutError:
-        raise ZigBeeTimeout() from None
+    try:
+      async with async_timeout.timeout(timeout):
+        return await f
+    except asyncio.TimeoutError:
+      raise ZigBeeTimeout() from None
     finally:
       del self._inflight[seq]
 

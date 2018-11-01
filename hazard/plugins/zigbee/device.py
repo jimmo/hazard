@@ -56,8 +56,16 @@ class ZigBeeDevice():
       LOG.info('Ignoring duplicate ZCL')
       return
     self._recent_seq = self._recent_seq[-50:] + [seq]
+    
+    if default_response:
+      asyncio.get_event_loop().create_task(self._send_default_response(source_endpoint, cluster_name, command_name, zcl.spec.Status.SUCCESS))
     if self._on_zcl_callback:
       asyncio.get_event_loop().create_task(self._on_zcl_callback(source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs))
+
+  async def _send_default_response(self, endpoint, cluster_name, command_name, status):
+    LOG.info('Sending default response to {} / {} / {} = {}'.format(endpoint, cluster_name, command_name, status))
+    command, args = get_cluster_rx_command(cluster_name, command_name)
+    await self.zcl_profile(zcl.spec.Profile.HOME_AUTOMATION, endpoint, cluster_name, 'default_response', timeout=5, command=command, status=status)
 
   def _on_match_descriptors(self, profile, in_clusters, addr16, out_clusters):
     if profile == zcl.spec.Profile.HOME_AUTOMATION and in_clusters == [0x0019]:

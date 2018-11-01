@@ -59,7 +59,7 @@ class ZigBeeDevice():
     if self._on_zcl_callback:
       asyncio.get_event_loop().create_task(self._on_zcl_callback(source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs))
 
-  def _on_match_descriptors(profile, in_clusters, addr16, out_clusters):
+  def _on_match_descriptors(self, profile, in_clusters, addr16, out_clusters):
     if profile == zcl.spec.Profile.HOME_AUTOMATION and in_clusters == [0x0019]:
       # Ignore queries for the ugrade cluster.
       return

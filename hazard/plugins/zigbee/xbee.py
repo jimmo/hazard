@@ -193,7 +193,7 @@ class XBeeModule(ZigBeeModule):
       except Exception as e:
         import traceback
         LOG.error('Error in device frame handler')
-        LOG.error(traceback.print_exc())
+        LOG.error(traceback.format_exc())
     else:
       LOG.error('Unknown frame type: 0x{:02x}'.format(frame_type,))
 

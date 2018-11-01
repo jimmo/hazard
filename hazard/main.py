@@ -1,6 +1,7 @@
 import aiohttp.web
 import asyncio
 import logging
+import logging.handlers
 import signal
 import sys
 import warnings
@@ -12,7 +13,7 @@ from hazard.hazard import Hazard
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s %(levelname)7s: %(message)s',
-    filename='hazard.log',
+    handlers=[logging.handlers.RotatingFileHandler('hazard.log', maxBytes=4 * 1024**2, backupCount=20)]
 )
 LOG = logging.getLogger('main')
 

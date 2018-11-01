@@ -19,10 +19,14 @@ class ZigBeeDevice():
     self._seq = 1
     self._inflight = {}
     self._on_zcl_callback = None
+    self._on_announce_callback = None
     self._recent_seq = []
 
   def register_zcl(self, callback):
     self._on_zcl_callback = callback
+
+  def register_announce(self, callback):
+    self._on_announce_callback = callback
 
   def _on_frame(self, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
     if addr16 != self._addr16:
@@ -44,7 +48,9 @@ class ZigBeeDevice():
       return
 
     if cluster_name == 'match_desc':
-      self._on_match_descriptors(**kwargs)
+      asyncio.get_event_loop().create_task(self._on_match_descriptors(**kwargs))
+    elif cluster_name == 'device_annce':
+      asyncio.get_event_loop().create_task(self._on_device_announce(**kwargs))
 
   def _on_zcl(self, source_endpoint, dest_endpoint, cluster, profile, data):
     cluster_name, seq, command_type, command_name, default_response, kwargs = zcl.spec.decode_zcl(cluster, data)
@@ -55,23 +61,29 @@ class ZigBeeDevice():
     if seq in self._recent_seq:
       LOG.info('Ignoring duplicate ZCL')
       return
-    self._recent_seq = self._recent_seq[-50:] + [seq]
-    
+    self._recent_seq = self._recent_seq[-5:] + [seq]
+
     if default_response:
       asyncio.get_event_loop().create_task(self._send_default_response(source_endpoint, cluster_name, command_name, zcl.spec.Status.SUCCESS))
     if self._on_zcl_callback:
       asyncio.get_event_loop().create_task(self._on_zcl_callback(source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs))
 
   async def _send_default_response(self, endpoint, cluster_name, command_name, status):
-    LOG.info('Sending default response to {} / {} / {} = {}'.format(endpoint, cluster_name, command_name, status))
-    command, args = get_cluster_rx_command(cluster_name, command_name)
-    await self.zcl_profile(zcl.spec.Profile.HOME_AUTOMATION, endpoint, cluster_name, 'default_response', timeout=5, command=command, status=status)
+    # LOG.info('Sending default response to {} / {} / {} = {}'.format(endpoint, cluster_name, command_name, status))
+    # _cluster, command, _args = zcl.spec.get_cluster_rx_command(cluster_name, command_name)
+    # await self.zcl_profile(zcl.spec.Profile.HOME_AUTOMATION, endpoint, cluster_name, 'default_response', timeout=5, command=command, status=status)
+    # Devices say they want a response but they're actually asleep.
+    pass
 
-  def _on_match_descriptors(self, profile, in_clusters, addr16, out_clusters):
+  async def _on_match_descriptors(self, profile, in_clusters, addr16, out_clusters):
     if profile == zcl.spec.Profile.HOME_AUTOMATION and in_clusters == [0x0019]:
       # Ignore queries for the ugrade cluster.
       return
     LOG.warning('Attempted to match descriptors: profile {} / in {} / out {}'.format(profile, in_clusters, out_clusters))
+
+  async def _on_device_announce(self, capability, addr64, addr16):
+    if self._on_announce_callback:
+      await self._on_announce_callback()
 
   def _next_seq(self):
     seq = self._seq
@@ -84,7 +96,7 @@ class ZigBeeDevice():
 
     f = asyncio.Future()
     self._inflight[seq] = f
-    
+
       #print(hex(seq))
     result = await self._network._module.unicast(self._addr64, self._addr16, source_endpoint, dest_endpoint, cluster, profile, data)
     if not result:

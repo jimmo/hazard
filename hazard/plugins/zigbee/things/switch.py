@@ -11,7 +11,7 @@ class ZigBeeSwitch(Switch):
     self._device = None
 
   async def _on_zcl(self, source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs):
-    print('switch', source_endpoint, dest_endpoint, cluster_name, command_type, command_name, repr(kwargs))
+    #print('switch', source_endpoint, dest_endpoint, cluster_name, command_type, command_name, repr(kwargs))
     code = {
       'endpoint': source_endpoint,
       'cluster': cluster_name,

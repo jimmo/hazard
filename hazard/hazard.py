@@ -3,6 +3,7 @@ import json
 import datetime
 import logging
 import urllib.request
+import collections
 
 from hazard.thing import create_thing, create_thing_from_json
 import hazard.things
@@ -23,6 +24,7 @@ class Hazard:
     self._actions = {}
     self._tseq = 10
     self._aseq = 1
+    self._state = collections.defaultdict(lambda: None)
 
   def load(self):
     #try:
@@ -43,6 +45,7 @@ class Hazard:
         action.load_json(a)
         self._aseq = max(action.id() + 1, self._aseq)
         self._actions[action.id()] = action
+      self._state.update(config.get('state', {}))
     #except FileNotFoundError:
     #  pass
     #except json.decoder.JSONDecodeError:
@@ -69,6 +72,7 @@ class Hazard:
         'actions': [
           a.to_json() for a in self._actions.values()
         ],
+        'state': self._state,
       }
       json.dump(config, f, indent=2)
 
@@ -157,6 +161,7 @@ asyncio.get_event_loop().create_task(__code())
     exec(code, {
       'action': self.find_action,
       'thing': self.find_thing,
+      'state': self._state,
       'hour': lambda: datetime.datetime.now().hour,
       'minute': lambda: datetime.datetime.now().minute,
       'http_get': self.http_get,

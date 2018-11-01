@@ -138,7 +138,7 @@ class XBeeModule(ZigBeeModule):
   async def allow_joining(self, allow):
     await self._send_at('NJ', 0xff if allow else 0)
     result = await self._send_at('NJ')
-    LOG.warning('Allow joining: ', result > 0)
+    LOG.warning('Allow joining: %s', result > 0)
 
   async def _tx_explicit(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data, radius=0, retries=True, indirect=False, multicast=False, aps=False, extended_timeout=False):
     opt = 0

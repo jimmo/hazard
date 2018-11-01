@@ -41,10 +41,14 @@ class ZigBeeDevice():
     if seq in self._inflight:
       #print('  delivering future')
       self._inflight[seq].set_result(kwargs)
+      return
+
+    if cluster_name == 'match_desc':
+      self._on_match_descriptors(**kwargs)
 
   def _on_zcl(self, source_endpoint, dest_endpoint, cluster, profile, data):
-    cluster_name, seq, command_type, command_name, kwargs = zcl.spec.decode_zcl(cluster, data)
-    LOG.info('ZCL from "{}": {} {} {} {} {} {} {} {}'.format(self._name, source_endpoint, dest_endpoint, seq, profile, cluster_name, command_type, command_name, kwargs))
+    cluster_name, seq, command_type, command_name, default_response, kwargs = zcl.spec.decode_zcl(cluster, data)
+    LOG.info('ZCL from "{}": {} {} {} {} {} {} {} {} {}'.format(self._name, source_endpoint, dest_endpoint, seq, profile, cluster_name, command_type, command_name, default_response, kwargs))
     if seq in self._inflight:
       self._inflight[seq].set_result((command_name, kwargs,))
       return
@@ -54,6 +58,12 @@ class ZigBeeDevice():
     self._recent_seq = self._recent_seq[-50:] + [seq]
     if self._on_zcl_callback:
       asyncio.get_event_loop().create_task(self._on_zcl_callback(source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs))
+
+  def _on_match_descriptors(profile, in_clusters, addr16, out_clusters):
+    if profile == zcl.spec.Profile.HOME_AUTOMATION and in_clusters == [0x0019]:
+      # Ignore queries for the ugrade cluster.
+      return
+    LOG.warning('Attempted to match descriptors: profile {} / in {} / out {}'.format(profile, in_clusters, out_clusters))
 
   def _next_seq(self):
     seq = self._seq
@@ -66,17 +76,18 @@ class ZigBeeDevice():
 
     f = asyncio.Future()
     self._inflight[seq] = f
-    #print(hex(seq))
-    result = await self._network._module.unicast(self._addr64, self._addr16, source_endpoint, dest_endpoint, cluster, profile, data)
-    if not result:
-      f.cancel()
-      raise ZigBeeDeliveryFailure()
-
     try:
-      async with async_timeout.timeout(timeout):
-        return await f
-    except asyncio.TimeoutError:
-      raise ZigBeeTimeout() from None
+      #print(hex(seq))
+      result = await self._network._module.unicast(self._addr64, self._addr16, source_endpoint, dest_endpoint, cluster, profile, data)
+      if not result:
+        f.cancel()
+        raise ZigBeeDeliveryFailure()
+
+      try:
+        async with async_timeout.timeout(timeout):
+          return await f
+      except asyncio.TimeoutError:
+        raise ZigBeeTimeout() from None
     finally:
       del self._inflight[seq]
 

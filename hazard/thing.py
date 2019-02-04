@@ -1,4 +1,8 @@
+import logging
+
 THINGS = {}
+
+LOG = logging.getLogger('hazard')
 
 
 def register_thing(cls):

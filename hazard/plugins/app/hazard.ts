@@ -28,6 +28,10 @@ export class Thing extends ThingBase {
     return Serializer.deserialize(await response.json);
   }
 
+  async reconfigure(): Promise<any> {
+    return await this.action('reconfigure');
+  }
+
   hasFeature(feature: string) {
     return this.features.indexOf(feature) >= 0;
   }
@@ -67,7 +71,7 @@ export class Action {
     return Serializer.deserialize(actions);
   }
 
-  static async create(): Promise<Action[]> {
+  static async create(): Promise<Action> {
     let response = await fetch('/api/rest/action/create', {
       method: 'POST',
       body: JSON.stringify({}),

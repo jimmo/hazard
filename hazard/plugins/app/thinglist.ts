@@ -254,6 +254,11 @@ export class ThingDialog extends Dialog {
     close.click.add(() => {
       this.close();
     });
+
+    const reconfigure = this.add(new Button(null, Ionicons.Settings), { x2: 20, y2: 20 });
+    reconfigure.click.add(() => {
+      thing.reconfigure();
+    });
   }
 
   defaultConstraints() {

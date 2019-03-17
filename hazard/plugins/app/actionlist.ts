@@ -103,4 +103,15 @@ export class ActionList extends List<Action> {
       const l = this.addItem(action);
     }
   }
+
+  protected async contextMenu(): Promise<MenuItems> {
+    const addNew = new MenuItem('Add new...');
+    addNew.click.add(async () => {
+      const a = await Action.create();
+      await new ActionCodeDialog(a).modal(this.form);
+      this.update();
+    });
+
+    return [addNew];
+  }
 }

@@ -154,7 +154,8 @@ async def __code():
     import sys
     t, v, tb = sys.exc_info()
     import logging
-    logging.getLogger('thing').error("Error in event handler: {}: {}".format(t.__name__, v))
+    import traceback
+    logging.getLogger('thing').error("Error in event handler: {}: {}\\n{}".format(t.__name__, v, ''.join(traceback.format_tb(tb))))
 
 asyncio.get_event_loop().create_task(__code())
 '''

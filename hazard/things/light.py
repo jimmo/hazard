@@ -15,11 +15,11 @@ class Light(Thing):
     self._temperature = None
     self._saturation = None
 
-  async def on(self):
+  async def on(self, soft=False):
     self._on = True
     LOG.info('Setting "%s" to ON', self._name)
 
-  async def off(self):
+  async def off(self, soft=False):
     self._on = False
     LOG.info('Setting "%s" to OFF', self._name)
 
@@ -27,7 +27,7 @@ class Light(Thing):
     self._on = not self._on
     LOG.info('Setting "%s" to %s', self._name, 'ON' if self._on else 'OFF')
 
-  async def level(self, level=None, delta=None, onoff=False):
+  async def level(self, level=None, delta=None, onoff=False, soft=False):
     if level is not None:
       self._level = min(1, max(0, level))
     elif delta is not None:

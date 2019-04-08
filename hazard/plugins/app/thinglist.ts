@@ -115,7 +115,7 @@ class ThingActionSwitchButtonCodeDialog extends Dialog {
     this.add(new Button('Cancel'), { x2: 20, y2: 20 }).click.add(() => {
       this.close(null);
     });
-    this.add(new Button('OK'), { x2: 190, y2: 20 }).click.add(() => {
+    this.add(new Button('OK'), { x2: 210, y2: 20 }).click.add(() => {
       this.button.tap = tap.text;
       this.button.single = single.text;
       this.button.double = double.text;
@@ -255,7 +255,7 @@ export class ThingDialog extends Dialog {
       this.close();
     });
 
-    const reconfigure = this.add(new Button(null, Ionicons.Settings), { x2: 20, y2: 20 });
+    const reconfigure = this.add(new Button(null, Ionicons.Settings), { x2: 20, y2: 20, w: 30 });
     reconfigure.click.add(() => {
       thing.reconfigure();
     });

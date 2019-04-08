@@ -71,7 +71,7 @@ class ZigBeeLight(Light):
     await super().off()
     #await self.configure_reporting()
     LOG.debug('Sending OFF command to "%s"', self._name)
-    if soft:
+    if soft and self._level > 0.05:
       await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
     else:
       await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
@@ -200,7 +200,7 @@ class ZigBeeLightGroup(Light):
       return
     await super().off()
     LOG.debug('Sending OFF command to group "%s"', self._name)
-    if soft:
+    if soft and self._level > 0.05:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
     else:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)

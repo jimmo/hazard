@@ -8,7 +8,7 @@ import zcl.spec
 import random
 
 TRANSITION_TIME_HARD = 0
-TRANSITION_TIME_SOFT = 10
+TRANSITION_TIME_SOFT = 2
 
 LOG = logging.getLogger('zigbee')
 
@@ -60,7 +60,7 @@ class ZigBeeLight(Light):
     await super().on()
     LOG.debug('Sending ON command to "%s"', self._name)
     if soft:
-      await self.level(level=1, onoff=True, soft=True)
+      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(self._level*253) + 1, time=TRANSITION_TIME_SOFT)
     else:
       await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
     LOG.debug(' --> done ("%s")', self._name)
@@ -72,7 +72,7 @@ class ZigBeeLight(Light):
     #await self.configure_reporting()
     LOG.debug('Sending OFF command to "%s"', self._name)
     if soft:
-      await self.level(level=0, onoff=True, soft=True)
+      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
     else:
       await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
     LOG.debug(' --> done ("%s")', self._name)
@@ -190,7 +190,7 @@ class ZigBeeLightGroup(Light):
     await super().on()
     LOG.debug('Sending ON command to group "%s"', self._name)
     if soft:
-      await self.level(level=1, onoff=True, soft=True)
+      await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(self._level*253) + 1, time=TRANSITION_TIME_SOFT)
     else:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
     LOG.debug(' --> done ("%s")', self._name)
@@ -201,7 +201,7 @@ class ZigBeeLightGroup(Light):
     await super().off()
     LOG.debug('Sending OFF command to group "%s"', self._name)
     if soft:
-      await self.level(level=0, onoff=True, soft=True)
+      await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
     else:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
     LOG.debug(' --> done ("%s")', self._name)

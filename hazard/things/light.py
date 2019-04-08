@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from hazard.thing import Thing, register_thing
@@ -33,6 +34,7 @@ class Light(Thing):
       if self._level is None:
         self._level = 0.5
       self._level = min(1, max(0, self._level + delta))
+    self._on = self._level > 0
     LOG.info('Setting "%s" level to %f', self._name, self._level)
 
   async def hue(self, hue):
@@ -44,14 +46,17 @@ class Light(Thing):
   async def saturation(self, saturation):
     self._saturation = saturation
 
-  async def on_level(self):
+  async def on_level(self, soft=True, time_aware=False):
     if self._on:
       if self._level < 0.5:
-        await self.level(level=1, onoff=True)
+        await self.level(level=1, onoff=True, soft=soft)
       else:
-        await self.level(level=0.05, onoff=True)
+        await self.level(level=0.05, onoff=True, soft=soft)
     else:
-      await self.on()
+      if time_aware and datetime.datetime.now().hour > 19:
+        await self.level(level=0.05, onoff=True, soft=soft)
+      else:
+        await self.on(soft=soft)
 
   def to_json(self):
     obj = super().to_json()

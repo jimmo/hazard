@@ -46,7 +46,7 @@ class Light(Thing):
   async def saturation(self, saturation):
     self._saturation = saturation
 
-  async def on_level(self, soft=True, time_aware=False):
+  async def on_level(self, soft=False, time_aware=False):
     if self._on:
       if self._level < 0.5:
         await self.level(level=1, onoff=True, soft=soft)

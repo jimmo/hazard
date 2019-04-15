@@ -95,7 +95,6 @@ class XBeeModule(ZigBeeModule):
     super().load_json(json)
     self._port = json.get('port', '')
     self._baudrate = json.get('baudrate', 0)
-    self.connect()
 
   def to_json(self):
     json = super().to_json()

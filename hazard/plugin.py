@@ -26,3 +26,6 @@ class HazardPlugin:
 
   def get_routes(self):
     return []
+
+  def start(self):
+    pass

@@ -28,6 +28,9 @@ class ZigBeePlugin(HazardPlugin):
     self._network = ZigBeeNetwork(self._hazard, self._module)
     self._network.load_json(json.get('network', {}))
 
+  def start(self):
+    self._module.connect()
+
   def to_json(self):
     json = super().to_json()
     json['module'] = self._module.to_json()
@@ -148,7 +151,7 @@ class ZigBeePlugin(HazardPlugin):
     group.update_from_json(data)
     self._hazard.save()
     return aiohttp.web.json_response(group.to_json())
-  
+
   async def handle_group_cluster_zcl(self, request):
     group_addr16 = int(request.match_info['group'], 10)
     profile = self.get_profile_from_request(request)

@@ -60,6 +60,10 @@ class Hazard:
 
     #self.save()
 
+  def start(self):
+    for p in self._plugins.values():
+      p.start()
+
   def save(self):
     with open('/home/jimmo/.hazard', 'w') as f:
       config = {

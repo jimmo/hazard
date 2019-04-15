@@ -28,6 +28,7 @@ def main():
 
   h = Hazard()
   h.load()
+  h.start()
 
   loop = asyncio.get_event_loop()
   warnings.simplefilter('always', ResourceWarning)

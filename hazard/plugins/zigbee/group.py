@@ -12,7 +12,7 @@ class ZigBeeGroup():
     self._addr16 = addr16
     self._name = name
     self._seq = 127
-    
+
   def to_json(self):
     return {
       'type': type(self).__name__,
@@ -28,7 +28,7 @@ class ZigBeeGroup():
     if self._addr16 != group_config['addr16']:
       raise ValueError('Updating from incorrect group')
     self._name = group_config.get('name', '')
-    
+
   def _next_seq(self):
     seq = self._seq
     self._seq = (self._seq + 1) % 256 or 1
@@ -56,3 +56,24 @@ class ZigBeeGroup():
     seq = self._next_seq()
     cluster, data = zcl.spec.encode_profile_command(cluster_name, command_name, seq, direction=0, default_response=False, **kwargs)
     return await self._send(seq, 1, dest_endpoint, cluster, profile, data, timeout)
+
+  def find_member_things(self, thing_type):
+    return [t for t in self._network._hazard.find_things(thing_type) if self._addr16 in t._groups]
+
+  def get_thing(self, thing_group_type):
+    for t in self._network._hazard.find_things(thing_group_type):
+      if t._group == self:
+        return t
+    return None
+
+  def find_subgroup_things(self, thing_group_type, thing_type):
+    subgroups = []
+    my_things = set(self.find_member_things(thing_type))
+    for g in self._network.all_groups():
+      if g == self:
+        continue
+      group_things = set(g.find_member_things(thing_type))
+      thing = g.get_thing(thing_group_type)
+      if thing and group_things <= my_things:
+        subgroups.append(thing)
+    return subgroups

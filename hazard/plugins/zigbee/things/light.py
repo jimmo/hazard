@@ -55,6 +55,15 @@ class ZigBeeLight(Light):
       else:
         LOG.error('unknown light attribute', source_endpoint, dest_endpoint, cluster_name, command_type, command_name, repr(kwargs))
 
+      self.update_groups()
+
+  def update_groups(self):
+    for addr16 in self._groups:
+      g = self._device._network.find_group(addr16)
+      t = g.get_thing(ZigBeeLightGroup)
+      if t:
+        t.update()
+
   async def on(self, soft=False):
     if not self._device:
       return
@@ -65,6 +74,7 @@ class ZigBeeLight(Light):
     else:
       await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
     LOG.debug(' --> done ("%s")', self._name)
+    self.update_groups()
 
   async def off(self, soft=False):
     if not self._device:
@@ -77,6 +87,7 @@ class ZigBeeLight(Light):
     else:
       await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
     LOG.debug(' --> done ("%s")', self._name)
+    self.update_groups()
 
   async def toggle(self):
     if not self._device:
@@ -93,18 +104,21 @@ class ZigBeeLight(Light):
       command += '_on_off'
     time = TRANSITION_TIME_SOFT if soft else TRANSITION_TIME_HARD
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*253) + 1, time=time)
+    self.update_groups()
 
   async def hue(self, hue):
     if not self._device:
       return
     await super().hue(hue)
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(hue*255), dir=0, time=TRANSITION_TIME_SOFT)
+    self.update_groups()
 
   async def saturation(self, saturation):
     if not self._device:
       return
     await super().saturation(hue)
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_saturation', timeout=5, saturation=int(saturation*255), dir=0, time=TRANSITION_TIME_SOFT)
+    self.update_groups()
 
   async def temperature(self, temperature):
     if not self._device:
@@ -112,6 +126,7 @@ class ZigBeeLight(Light):
     await super().temperature(temperature)
     mireds = int(1e6 / temperature)
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_color_temperature', timeout=5, mireds=mireds, time=TRANSITION_TIME_SOFT)
+    self.update_groups()
 
   async def disable_reporting(self):
     await self._device.zcl_profile(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'configure_reporting', timeout=5, configs=[
@@ -157,7 +172,7 @@ class ZigBeeLight(Light):
     # ('get_group_membership_response', {'capacity': 3, 'ids': [3, 4, 8, 16, 18]})
     self._groups = []
     for addr16 in memberships[1].get('ids', []):
-      self._groups.append(self._device._network.find_group(addr16))
+      self._groups.append(addr16)
 
   async def reconfigure(self):
     await super().reconfigure()
@@ -169,7 +184,7 @@ class ZigBeeLight(Light):
     json.update({
       'device': self._device.addr64hex() if self._device else None,
       'endpoint': self._endpoint,
-      'groups': [g._group._addr16 for g in self._groups]
+      'groups': self._groups
     })
     return json
 
@@ -179,7 +194,6 @@ class ZigBeeLight(Light):
     self._device.register_zcl(self._on_zcl)
     self._endpoint = json['endpoint']
     self._groups = json.get('groups', [])
-
 
 
 @register_thing
@@ -196,10 +210,18 @@ class ZigBeeLightGroup(Light):
     # TODO: Query endpoints from group devices.
     self._endpoint = 3
 
+  def update(self):
+    pass
+
   async def on(self, soft=False):
     if not self._group:
       return
     await super().on()
+    for light in self._group.find_member_things(ZigBeeLight):
+      await super(ZigBeeLight, light).on()
+    for light_group in self._group.find_subgroup_things(ZigBeeLightGroup, ZigBeeLight):
+      await super(ZigBeeLightGroup, light_group).on()
+
     LOG.debug('Sending ON command to group "%s"', self._name)
     if soft:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(self._level*253) + 1, time=TRANSITION_TIME_SOFT)
@@ -211,6 +233,11 @@ class ZigBeeLightGroup(Light):
     if not self._group:
       return
     await super().off()
+    for light in self._group.find_member_things(ZigBeeLight):
+      await super(ZigBeeLight, light).off()
+    for light_group in self._group.find_subgroup_things(ZigBeeLightGroup, ZigBeeLight):
+      await super(ZigBeeLightGroup, light_group).off()
+
     LOG.debug('Sending OFF command to group "%s"', self._name)
     if soft and self._level > 0.05:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
@@ -228,6 +255,11 @@ class ZigBeeLightGroup(Light):
     if not self._group:
       return
     await super().level(level, delta)
+    for light in self._group.find_member_things(ZigBeeLight):
+      await super(ZigBeeLight, light).level(level, delta)
+    for light_group in self._group.find_subgroup_things(ZigBeeLightGroup, ZigBeeLight):
+      await super(ZigBeeLightGroup, light_group).level(level, delta)
+
     command = 'move_to_level'
     if onoff:
       command += '_on_off'
@@ -238,12 +270,22 @@ class ZigBeeLightGroup(Light):
     if not self._group:
       return
     await super().hue(hue)
+    for light in self._group.find_member_things(ZigBeeLight):
+      await super(ZigBeeLight, light).hue(hue)
+    for light_group in self._group.find_subgroup_things(ZigBeeLightGroup, ZigBeeLight):
+      await super(ZigBeeLightGroup, light_group).hue(hue)
+
     await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(hue*255), dir=0, time=TRANSITION_TIME_SOFT)
 
   async def temperature(self, temperature):
     if not self._group:
       return
     await super().temperature(temperature)
+    for light in self._group.find_member_things(ZigBeeLight):
+      await super(ZigBeeLight, light).temperature(temperature)
+    for light_group in self._group.find_subgroup_things(ZigBeeLightGroup, ZigBeeLight):
+      await super(ZigBeeLightGroup, light_group).temperature(temperature)
+
     mireds = int(1e6 / temperature)
     await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_color_temperature', timeout=5, mireds=mireds, time=TRANSITION_TIME_SOFT)
 

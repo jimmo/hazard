@@ -65,19 +65,19 @@ class Hazard:
       p.start()
 
   def save(self):
+    config = {
+      'plugins': [
+        p.to_json() for p in self._plugins.values()
+      ],
+      'things': [
+        t.to_json() for t in self._things.values()
+      ],
+      'actions': [
+        a.to_json() for a in self._actions.values()
+      ],
+      'state': self._state,
+    }
     with open('/home/jimmo/.hazard', 'w') as f:
-      config = {
-        'plugins': [
-          p.to_json() for p in self._plugins.values()
-        ],
-        'things': [
-          t.to_json() for t in self._things.values()
-        ],
-        'actions': [
-          a.to_json() for a in self._actions.values()
-        ],
-        'state': self._state,
-      }
       json.dump(config, f, indent=2)
 
   def find_plugin(self, cls):
@@ -90,6 +90,9 @@ class Hazard:
       if t.name() == name:
         return t
     raise ValueError('Thing "{}" not found'.format(name))
+
+  def find_things(self, thing_type):
+    return [t for t in self._things.values() if isinstance(t, thing_type)]
 
   def find_action(self, name):
     for a in self._actions.values():
@@ -111,7 +114,6 @@ class Hazard:
   def get_routes(self):
     return [
     ] + sum([p.get_routes() for p in self._plugins.values()], [])
-
 
   async def reconfigure(self):
     for thing in self._things.values():

@@ -19,6 +19,7 @@ class ZigBeeLight(Light):
     super().__init__(hazard)
     self._device = None
     self._endpoint = None
+    self._groups = []
 
   async def create_from_device(self, device):
     self._device = device
@@ -150,8 +151,17 @@ class ZigBeeLight(Light):
       }
     ])
 
+  async def update_group_membership(self):
+    group_ids = [g._addr16 for g in self._device._network.all_groups()]
+    memberships = await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'groups', 'get_group_membership', ids=group_ids)
+    # ('get_group_membership_response', {'capacity': 3, 'ids': [3, 4, 8, 16, 18]})
+    self._groups = []
+    for addr16 in memberships[1].get('ids', []):
+      self._groups.append(self._device._network.find_group(addr16))
+
   async def reconfigure(self):
     await super().reconfigure()
+    await self.update_group_membership()
     await self.configure_reporting()
 
   def to_json(self):
@@ -159,6 +169,7 @@ class ZigBeeLight(Light):
     json.update({
       'device': self._device.addr64hex() if self._device else None,
       'endpoint': self._endpoint,
+      'groups': [g._group._addr16 for g in self._groups]
     })
     return json
 
@@ -167,6 +178,7 @@ class ZigBeeLight(Light):
     self._device = self._hazard.find_plugin('ZigBeePlugin').network().find_device(json['device'])
     self._device.register_zcl(self._on_zcl)
     self._endpoint = json['endpoint']
+    self._groups = json.get('groups', [])
 
 
 

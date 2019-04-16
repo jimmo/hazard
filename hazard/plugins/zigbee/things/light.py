@@ -70,7 +70,7 @@ class ZigBeeLight(Light):
     await super().on()
     LOG.debug('Sending ON command to "%s"', self._name)
     if soft:
-      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(self._level*253) + 1, time=TRANSITION_TIME_SOFT)
+      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(self._level*255), time=TRANSITION_TIME_SOFT)
     else:
       await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
     LOG.debug(' --> done ("%s")', self._name)
@@ -103,7 +103,7 @@ class ZigBeeLight(Light):
     if onoff:
       command += '_on_off'
     time = TRANSITION_TIME_SOFT if soft else TRANSITION_TIME_HARD
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*253) + 1, time=time)
+    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*255), time=time)
     self.update_groups()
 
   async def hue(self, hue):
@@ -270,7 +270,7 @@ class ZigBeeLightGroup(Light):
     if onoff:
       command += '_on_off'
     time = TRANSITION_TIME_SOFT if soft else TRANSITION_TIME_HARD
-    await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*253) + 1, time=time)
+    await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*255), time=time)
 
   async def hue(self, hue):
     if not self._group:
@@ -294,6 +294,21 @@ class ZigBeeLightGroup(Light):
 
     mireds = int(1e6 / temperature)
     await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_color_temperature', timeout=5, mireds=mireds, time=TRANSITION_TIME_SOFT)
+
+  async def dim(self, soft=False):
+    if not self._group or not self._on:
+      return
+    if self.max_member_level() > 0.05:
+      return await self.level(delta=-0.2)
+
+    lights = self._group.find_member_things(ZigBeeLight)
+    if sum(t._on for t in lights) == 1:
+      return
+
+    random.shuffle(lights)
+    for light in lights:
+      if light._on:
+        return await light.off(soft=soft)
 
   def to_json(self):
     json = super().to_json()

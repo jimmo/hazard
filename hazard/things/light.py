@@ -33,7 +33,10 @@ class Light(Thing):
     elif delta is not None:
       if self._level is None:
         self._level = 0.5
-      self._level = min(1, max(0, self._level + delta))
+      if delta < 0 and self._level > 0.05:
+        self._level = min(1, max(0.05, self._level + delta))
+      else:
+        self._level = min(1, max(0, self._level + delta))
     self._on = self._level > 0
     LOG.info('Setting "%s" level to %f', self._name, self._level)
 

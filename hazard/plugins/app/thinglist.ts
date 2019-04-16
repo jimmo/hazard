@@ -42,7 +42,7 @@ class ThingActionLightLevel extends ThingAction {
     const slider = this.add(new Slider(thing.level, 0, 1, 0.2), { x: 100, y: 10, x2: 30, h: 50 });
     slider.change.add(() => {
       thing.action('level', {
-        level: slider.value,
+        level: Math.max(0.05, slider.value),
       });
     }, 500);
   }

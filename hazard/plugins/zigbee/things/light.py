@@ -310,6 +310,18 @@ class ZigBeeLightGroup(Light):
       if light._on:
         return await light.off(soft=soft)
 
+  async def undim(self, soft=False):
+    if not self._group or not self._on:
+      return
+
+    lights = self._group.find_member_things(ZigBeeLight)
+    random.shuffle(lights)
+    for light in lights:
+      if not light._on:
+        return await light.on(soft=soft)
+
+    return await self.level(delta=0.2)
+
   def to_json(self):
     json = super().to_json()
     json.update({

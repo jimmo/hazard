@@ -56,7 +56,7 @@ class Light(Thing):
       else:
         await self.level(level=0.05, onoff=True, soft=soft)
     else:
-      if time_aware and datetime.datetime.now().hour > 19:
+      if time_aware and datetime.datetime.now().hour >= 18:
         await self.level(level=0.05, onoff=True, soft=soft)
       else:
         await self.on(soft=soft)

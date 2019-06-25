@@ -13,7 +13,7 @@ from hazard.hazard import Hazard
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s %(levelname)7s: %(message)s',
-    handlers=[logging.handlers.RotatingFileHandler('hazard.log', maxBytes=4 * 1024**2, backupCount=20)]
+    handlers=[logging.handlers.RotatingFileHandler('hazard.log', maxBytes=4 * 1024**2, backupCount=100000)]
 )
 LOG = logging.getLogger('main')
 

@@ -1,5 +1,6 @@
 import datetime
 import logging
+import math
 
 from hazard.thing import Thing, register_thing
 
@@ -40,8 +41,14 @@ class Light(Thing):
     self._on = self._level > 0
     LOG.info('Setting "%s" level to %f', self._name, self._level)
 
-  async def hue(self, hue):
-    self._hue = hue
+  async def hue(self, hue=None, delta=None):
+    if hue is not None:
+      self._hue = min(1, max(0, hue))
+    elif delta is not None:
+      if self._hue is None:
+        self._hue = 0
+      self._hue += delta
+      self._hue -= math.floor(self._hue)
 
   async def temperature(self, temperature):
     self._temperature = temperature

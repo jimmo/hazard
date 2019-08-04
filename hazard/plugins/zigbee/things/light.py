@@ -106,18 +106,18 @@ class ZigBeeLight(Light):
     await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*255), time=time)
     self.update_groups()
 
-  async def hue(self, hue):
+  async def hue(self, hue=None, delta=None):
     if not self._device:
       return
-    await super().hue(hue)
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(hue*255), dir=0, time=TRANSITION_TIME_SOFT)
+    await super().hue(hue, delta)
+    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(self._hue*250), dir=0, time=TRANSITION_TIME_SOFT)
     self.update_groups()
 
   async def saturation(self, saturation):
     if not self._device:
       return
-    await super().saturation(hue)
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_saturation', timeout=5, saturation=int(saturation*255), dir=0, time=TRANSITION_TIME_SOFT)
+    await super().saturation(saturation)
+    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_saturation', timeout=5, saturation=int(self._saturation*250), dir=0, time=TRANSITION_TIME_HARD)
     self.update_groups()
 
   async def temperature(self, temperature):
@@ -211,7 +211,7 @@ class ZigBeeLightGroup(Light):
     self._endpoint = 3
 
   def update(self):
-    pass
+    self._on = self.any_member_on()
 
   def max_member_level(self):
     return max(light._level for light in self._group.find_member_things(ZigBeeLight))

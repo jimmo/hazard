@@ -20,8 +20,10 @@ class XBeeProtocol(asyncio.Protocol):
     #print('port opened', transport)
 
   def data_received(self, data):
+    #print('recv', data)
     self._data += data
-    self._find_frame()
+    while self._find_frame():
+      pass
 
   def connection_lost(self, exc):
     print('port closed')
@@ -42,22 +44,59 @@ class XBeeProtocol(asyncio.Protocol):
     return 0xff - (chk & 0xff)
 
   def _find_frame(self):
+    if not self._data:
+      return False
     # Frames are: <1-byte 0x7e>, <2-byte length>, <data>, <1-byte checksum>
     i = 0
-    while i < len(self._data) - 3:
-      if self._data[i] == 0x7e:
-        data_len, = struct.unpack('>H', self._data[i+1:i+3])
-        frame_len = data_len + 4
-        if i + frame_len > len(self._data):
-          continue
-        data = self._data[i + 3:i + frame_len - 1]
-        chk = self._checksum(data)
-        if chk == self._data[i + frame_len - 1]:
-          self._xbee_module._on_frame(data)
+    #while i < len(self._data) - 3:
+    if self._data[i] == 0x7e:
+      len_bytes = bytearray()
+      i += 1
+      while len(len_bytes) < 2:
+        if i >= len(self._data):
+          return False
+        if self._data[i] == 0x7d:
+          len_bytes.append(0x20 ^ self._data[i+1],)
+          i += 2
         else:
-          LOG.error('bad frame checksum at %d: %s', i, repr(data))
-        self._data = self._data[i + frame_len:]
-        i = 0
+          len_bytes.append(self._data[i],)
+          i += 1
+      data_len, = struct.unpack('>H', len_bytes)
+      frame = bytearray()
+      while len(frame) < data_len:
+        if i >= len(self._data):
+          return False
+        if self._data[i] == 0x7d:
+          frame.append(0x20 ^ self._data[i+1],)
+          i += 2
+        else:
+          frame.append(self._data[i],)
+          i += 1
+
+
+      #frame_len = data_len + 4
+      #if i + frame_len > len(self._data):
+      #  continue
+      #data = self._data[i + 3:i + frame_len - 1]
+      chk_expected = self._checksum(frame)
+
+      if i >= len(self._data):
+        return False
+
+      chk_actual = self._data[i]
+      if chk_actual == 0x7d:
+        i += 1
+        chk_actual = 0x20 ^ self._data[i]
+      i += 1
+      if chk_expected == chk_actual:
+        self._xbee_module._on_frame(frame)
+      else:
+        LOG.error('bad frame checksum at %d: %s from %s', i, frame, self._data[:i])
+      self._data = self._data[i:]
+      return True
+
+        # ~ \x00\x1e \x91\x00\x17\x88\x01\x04\n\x17\xf8\xb8\xb4\x00\x00\x00}3\x00\x00\x02\x00\xb4\xb8\xf8\x17\n\x04\x01\x88\x17\x00\x80\x87
+        # ~ \x00\x1e \x91\x00\x17\x88\x01\x04\n\x17\xf8\xb8\xb4\x00\x00\x00}3\x00\x00\x02\x00\xb4\xb8\xf8\x17\n\x04\x01\x88\x17\x00\x80\x87
 
 
 STRUCT_TYPES = {
@@ -164,7 +203,7 @@ class XBeeModule(ZigBeeModule):
     if len(data) < 2:
       LOG.error('Frame too small')
       return
-    #print(data)
+    print('recv', data)
     frame_type, = struct.unpack('B', data[:1])
     data = data[1:]
 
@@ -210,9 +249,18 @@ class XBeeModule(ZigBeeModule):
       frame_id = 0
 
     data = struct.pack('BB', frame_type, frame_id) + data
-    data = b'\x7e' + struct.pack('>H', len(data)) + data + struct.pack('B', self._protocol._checksum(data))
+    checksum = struct.pack('B', self._protocol._checksum(data))
+    data = struct.pack('>H', len(data)) + data
+    escaped_data = bytearray()
+    for b in data:
+      if b in (0x7d, 0x73, 0x11, 0x13,):
+        escaped_data.append(0x7d)
+        escaped_data.append(0x20 ^ b)
+      else:
+        escaped_data.append(b)
+    data = b'\x7e' + escaped_data + checksum
 
-    #print('sending', data)
+    print('sending', data)
 
     if status:
       f = asyncio.Future()

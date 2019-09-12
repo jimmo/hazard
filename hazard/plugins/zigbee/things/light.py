@@ -311,7 +311,7 @@ class ZigBeeLightGroup(Light):
         return await light.off(soft=soft)
 
   async def undim(self, soft=False):
-    if not self._group or not self._on:
+    if not self._group:
       return
 
     lights = self._group.find_member_things(ZigBeeLight)

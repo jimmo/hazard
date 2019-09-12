@@ -2,6 +2,7 @@ import logging
 
 from hazard.thing import register_thing
 from hazard.things import Light
+from hazard.plugins.zigbee.common import ZigBeeTimeout, ZigBeeDeliveryFailure
 
 import zcl.spec
 
@@ -67,26 +68,35 @@ class ZigBeeLight(Light):
   async def on(self, soft=False):
     if not self._device:
       return
+    prev = self._on
     await super().on()
     LOG.debug('Sending ON command to "%s"', self._name)
-    if soft:
-      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(self._level*255), time=TRANSITION_TIME_SOFT)
-    else:
-      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
-    LOG.debug(' --> done ("%s")', self._name)
+    try:
+      if soft:
+        await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(self._level*255), time=TRANSITION_TIME_SOFT)
+      else:
+        await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
+      LOG.debug(' --> done ("%s")', self._name)
+    except (ZigBeeDeliveryFailure, ZigBeeTimeout,):
+      LOG.debug(' --> failed ("%s")', self._name)
+      self._on = prev
     self.update_groups()
 
   async def off(self, soft=False):
     if not self._device:
       return
+    prev = self._on
     await super().off()
-    #await self.configure_reporting()
     LOG.debug('Sending OFF command to "%s"', self._name)
-    if soft and self._level > 0.05:
-      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
-    else:
-      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
-    LOG.debug(' --> done ("%s")', self._name)
+    try:
+      if soft and self._level > 0.05:
+        await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
+      else:
+        await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
+      LOG.debug(' --> done ("%s")', self._name)
+    except (ZigBeeDeliveryFailure, ZigBeeTimeout,):
+      LOG.debug(' --> failed ("%s")', self._name)
+      self._on = prev
     self.update_groups()
 
   async def toggle(self):
@@ -98,12 +108,21 @@ class ZigBeeLight(Light):
   async def level(self, level=None, delta=None, onoff=False, soft=False):
     if not self._device:
       return
+    prev_on = self._on
+    prev_level = self._level
     await super().level(level, delta)
     command = 'move_to_level'
     if onoff:
       command += '_on_off'
     time = TRANSITION_TIME_SOFT if soft else TRANSITION_TIME_HARD
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*255), time=time)
+    LOG.debug('Sending LEVEL command to "%s"', self._name)
+    try:
+      await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*255), time=time)
+      LOG.debug(' --> done ("%s")', self._name)
+    except (ZigBeeDeliveryFailure, ZigBeeTimeout,):
+      LOG.debug(' --> failed ("%s")', self._name)
+      self._on = prev_on
+      self._level = prev_level
     self.update_groups()
 
   async def hue(self, hue=None, delta=None):

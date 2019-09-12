@@ -325,6 +325,7 @@ class ZigBeeLightGroup(Light):
       return
 
     random.shuffle(lights)
+    lights.sort(key=lambda t: t._priority)
     for light in lights:
       if light._on:
         return await light.off(soft=soft)
@@ -335,6 +336,7 @@ class ZigBeeLightGroup(Light):
 
     lights = self._group.find_member_things(ZigBeeLight)
     random.shuffle(lights)
+    lights.sort(key=lambda t: -t._priority)
     for light in lights:
       if not light._on:
         return await light.on(soft=soft)

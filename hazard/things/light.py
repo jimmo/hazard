@@ -77,6 +77,7 @@ class Light(Thing):
       'hue': self._hue,
       'temperature': self._temperature,
       'saturation': self._saturation,
+      'priority': self._priority,
     })
     return obj
 
@@ -87,6 +88,7 @@ class Light(Thing):
     self._hue = obj.get('on', None)
     self._temperature = obj.get('on', None)
     self._saturation = obj.get('saturation', None)
+    self._priority = obj.get('priority', 0)
 
   def _features(self):
     features = super()._features() + ['light'];

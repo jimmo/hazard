@@ -20,7 +20,6 @@ class XBeeProtocol(asyncio.Protocol):
     #print('port opened', transport)
 
   def data_received(self, data):
-    #print('recv', data)
     self._data += data
     while self._find_frame():
       pass
@@ -103,10 +102,9 @@ class XBeeProtocol(asyncio.Protocol):
           LOG.error('bad unescaped frame checksum at %d: %s', i, repr(data))
         self._data = self._data[i + frame_len:]
         return True
+      else:
+       self._data = self._data[1:]
     return False
-
-        # ~ \x00\x1e \x91\x00\x17\x88\x01\x04\n\x17\xf8\xb8\xb4\x00\x00\x00}3\x00\x00\x02\x00\xb4\xb8\xf8\x17\n\x04\x01\x88\x17\x00\x80\x87
-        # ~ \x00\x1e \x91\x00\x17\x88\x01\x04\n\x17\xf8\xb8\xb4\x00\x00\x00}3\x00\x00\x02\x00\xb4\xb8\xf8\x17\n\x04\x01\x88\x17\x00\x80\x87
 
 
 STRUCT_TYPES = {
@@ -202,20 +200,13 @@ class XBeeModule(ZigBeeModule):
     if extended_timeout:
       opt |= 0x40
     data = struct.pack('>QHBBHHBB', addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, radius, opt) + data
-    #print('tx explicit ', hex(addr64), hex(addr16))
     response = await self._send_frame(0x11, data, status=not multicast)
-    #print('tx explicit response ', hex(addr64), hex(addr16))
-    #print(response)
     sent_addr16, retry_count, delivery_status, discovery_status, = struct.unpack('>HBBB', response)
-    #print('tx response', sent_addr16, retry_count, delivery_status, discovery_status)
-    #return True
     return delivery_status == 0
 
   def _on_frame(self, data):
     if len(data) < 2:
-      LOG.error('Frame too small')
       return
-    #print('recv', data)
     frame_type, = struct.unpack('B', data[:1])
     data = data[1:]
 
@@ -247,13 +238,6 @@ class XBeeModule(ZigBeeModule):
       LOG.error('Unknown frame type: 0x{:02x}'.format(frame_type,))
 
   async def _send_frame(self, frame_type, data, timeout=5, status=True):
-    #while self._rx:
-    #  self._rx = False
-    #  await asyncio.sleep(0.1)
-
-    # while len(self._inflight) > 1:
-    #   await asyncio.sleep(0.1)
-
     if status:
       frame_id = self._frame_id
       self._frame_id = (self._frame_id + 1) % 256 or 1

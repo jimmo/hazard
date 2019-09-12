@@ -77,8 +77,8 @@ class ZigBeeLight(Light):
       else:
         await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'on', timeout=5)
       LOG.debug(' --> done ("%s")', self._name)
-    except (ZigBeeDeliveryFailure, ZigBeeTimeout,):
-      LOG.debug(' --> failed ("%s")', self._name)
+    except (ZigBeeDeliveryFailure, ZigBeeTimeout,) as e:
+      LOG.debug(' --> failed ("%s"): %s', self._name, e)
       self._on = prev
     self.update_groups()
 
@@ -94,8 +94,8 @@ class ZigBeeLight(Light):
       else:
         await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
       LOG.debug(' --> done ("%s")', self._name)
-    except (ZigBeeDeliveryFailure, ZigBeeTimeout,):
-      LOG.debug(' --> failed ("%s")', self._name)
+    except (ZigBeeDeliveryFailure, ZigBeeTimeout,) as e:
+      LOG.debug(' --> failed ("%s"): %s', self._name, e)
       self._on = prev
     self.update_groups()
 

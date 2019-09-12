@@ -1,6 +1,8 @@
 class ZigBeeTimeout(RuntimeError):
-  pass
+  def __init__(self):
+    super().__init__('ZigBee timeout')
 
 
 class ZigBeeDeliveryFailure(RuntimeError):
-  pass
+  def __init__(self):
+    super().__init__('ZigBee delivery failure')

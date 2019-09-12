@@ -91,6 +91,9 @@ class Hazard:
         return t
     raise ValueError('Thing "{}" not found'.format(name))
 
+  def all_things(self):
+    return self._things.values()
+
   def find_things(self, thing_type):
     return [t for t in self._things.values() if isinstance(t, thing_type)]
 
@@ -168,11 +171,13 @@ asyncio.get_event_loop().create_task(__code())
     exec(code, {
       'action': self.find_action,
       'thing': self.find_thing,
+      'things': self.all_things,
       'state': self._state,
       'hour': lambda: datetime.datetime.now().hour,
       'minute': lambda: datetime.datetime.now().minute,
       'http_get': self.http_get,
       'http_post': self.http_post,
+      'hazard': self,
     }, {
       'self': self,
     })

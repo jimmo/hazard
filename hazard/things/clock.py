@@ -30,6 +30,6 @@ class Clock(Thing):
 
   async def _tick(self):
     while True:
-      print('tick')
+      # print('tick')
       await asyncio.sleep(self._interval)
       self._hazard.execute(self._code)

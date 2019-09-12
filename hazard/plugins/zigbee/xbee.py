@@ -73,11 +73,6 @@ class XBeeProtocol(asyncio.Protocol):
             frame.append(self._data[i],)
             i += 1
 
-
-        #frame_len = data_len + 4
-        #if i + frame_len > len(self._data):
-        #  continue
-        #data = self._data[i + 3:i + frame_len - 1]
         chk_expected = self._checksum(frame)
 
         if i >= len(self._data):
@@ -91,25 +86,24 @@ class XBeeProtocol(asyncio.Protocol):
         if chk_expected == chk_actual:
           self._xbee_module._on_frame(frame)
         else:
-          LOG.error('bad frame checksum at %d: %s from %s', i, frame, self._data[:i])
+          LOG.error('bad escape frame checksum at %d: %s from %s', i, frame, self._data[:i])
         self._data = self._data[i:]
         return True
     else:
-      while i < len(self._data) - 3:
-        if self._data[i] == 0x7e:
-          data_len, = struct.unpack('>H', self._data[i+1:i+3])
-          frame_len = data_len + 4
-          if i + frame_len > len(self._data):
-            return False
-          data = self._data[i + 3:i + frame_len - 1]
-          chk = self._checksum(data)
-          if chk == self._data[i + frame_len - 1]:
-            self._xbee_module._on_frame(data)
-          else:
-            LOG.error('bad frame checksum at %d: %s', i, repr(data))
-          self._data = self._data[i + frame_len:]
-          return True
-  return False
+      if self._data[i] == 0x7e:
+        data_len, = struct.unpack('>H', self._data[i+1:i+3])
+        frame_len = data_len + 4
+        if i + frame_len > len(self._data):
+          return False
+        data = self._data[i + 3:i + frame_len - 1]
+        chk = self._checksum(data)
+        if chk == self._data[i + frame_len - 1]:
+          self._xbee_module._on_frame(data)
+        else:
+          LOG.error('bad unescaped frame checksum at %d: %s', i, repr(data))
+        self._data = self._data[i + frame_len:]
+        return True
+    return False
 
         # ~ \x00\x1e \x91\x00\x17\x88\x01\x04\n\x17\xf8\xb8\xb4\x00\x00\x00}3\x00\x00\x02\x00\xb4\xb8\xf8\x17\n\x04\x01\x88\x17\x00\x80\x87
         # ~ \x00\x1e \x91\x00\x17\x88\x01\x04\n\x17\xf8\xb8\xb4\x00\x00\x00}3\x00\x00\x02\x00\xb4\xb8\xf8\x17\n\x04\x01\x88\x17\x00\x80\x87
@@ -267,7 +261,7 @@ class XBeeModule(ZigBeeModule):
       frame_id = 0
 
     data = struct.pack('BB', frame_type, frame_id) + data
-    if self._xbee_module._escape:
+    if self._escape:
       checksum = struct.pack('B', self._protocol._checksum(data))
       data = struct.pack('>H', len(data)) + data
       escaped_data = bytearray()

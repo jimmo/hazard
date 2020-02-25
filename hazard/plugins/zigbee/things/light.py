@@ -233,7 +233,7 @@ class ZigBeeLightGroup(Light):
     self._on = self.any_member_on()
 
   def max_member_level(self):
-    return max(light._level for light in self._group.find_member_things(ZigBeeLight))
+    return max(light._level if light._on else 0 for light in self._group.find_member_things(ZigBeeLight))
 
   def any_member_on(self):
     return any(light._on for light in self._group.find_member_things(ZigBeeLight))
@@ -339,7 +339,7 @@ class ZigBeeLightGroup(Light):
     lights.sort(key=lambda t: -t._priority)
     for light in lights:
       if not light._on:
-        return await light.on(soft=soft)
+        return await light.level(level=0.05, onoff=True, soft=soft)
 
     return await self.level(delta=0.2)
 

@@ -257,6 +257,10 @@ class ZigBeeLightGroup(Light):
   async def off(self, soft=False):
     if not self._group:
       return
+
+    # Cache this before we turn off all the members.
+    max_member_level = self.max_member_level()
+
     await super().off()
     for light in self._group.find_member_things(ZigBeeLight):
       await super(ZigBeeLight, light).off()
@@ -264,7 +268,7 @@ class ZigBeeLightGroup(Light):
       await super(ZigBeeLightGroup, light_group).off()
 
     LOG.debug('Sending OFF command to group "%s"', self._name)
-    if soft and self.max_member_level() > 0.05:
+    if soft and max_member_level > 0.05:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
     else:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)

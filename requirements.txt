@@ -1,4 +1,5 @@
 aiohttp
+bleak
 async_timeout
 pyserial
 pyserial_asyncio

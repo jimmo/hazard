@@ -54,11 +54,11 @@ class Hazard:
     if 'RestPlugin' not in self._plugins:
       LOG.warning('Creating default rest plugin')
       self._plugins['RestPlugin'] = hazard.plugins.RestPlugin(self)
+      self.save()
     if 'AppPlugin' not in self._plugins:
       LOG.warning('Creating default app plugin')
       self._plugins['AppPlugin'] = hazard.plugins.AppPlugin(self)
-
-    #self.save()
+      self.save()
 
   def start(self):
     for p in self._plugins.values():

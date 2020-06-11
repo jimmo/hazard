@@ -23,7 +23,7 @@ class BlePlugin(HazardPlugin):
       devices = await bleak.discover()
       for d in devices:
         manuf = d.metadata.get('manufacturer_data', {}).get(65535, [])
-        if d.name.startswith('th') and len(d.name) == 10 and len(manuf) == 4:
+        if d.name.startswith('th') and len(d.name) == 10:
           if d.name in self._registered_ble_names:
             self._registered_ble_names[d.name](d, manuf)
 

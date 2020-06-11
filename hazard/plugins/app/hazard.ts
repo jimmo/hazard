@@ -153,6 +153,13 @@ export class ThingLocation {
 }
 Serializer.register(ThingLocation);
 
+export class Temperature extends Thing {
+  temperature: number;
+  humidity: number;
+  last_update: number;
+}
+Serializer.register(Temperature);
+
 // export async function loadThingTypes(): Promise<ThingType[]> {
 //   // if (loadThingTypes.__cached) {
 //   //   return loadThingTypes.__cached;

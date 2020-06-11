@@ -1,5 +1,5 @@
 import { Label, ScrollBox, Control, TextListItem, List, Ionicons, CheckBox, Grabber, CoordAxis, MenuItems, MenuHeadingItem, MenuItem, PromptDialog, MenuSeparatorItem, ConfirmDialog, ListItem, Spacer } from "canvas-forms";
-import { Thing, Light } from './hazard';
+import { Thing, Light, Temperature } from './hazard';
 import { ThingDialog } from "./thinglist";
 
 class MapThing extends Control {
@@ -15,6 +15,13 @@ class MapThing extends Control {
       l.icon = Ionicons.Switch;
     } else if (thing.hasFeature('clock')) {
       l.icon = Ionicons.Clock;
+    } else if (thing.hasFeature('temperature')) {
+      l.icon = Ionicons.Thermometer;
+      const sensor = thing as Temperature;
+
+      if (sensor.temperature !== null) {
+        const l2 = this.add(new Label(sensor.temperature.toFixed(1) + '\u2103'), 20, 0);
+      }
     } else {
       l.text = thing.name;
       l.fontSize = 18;

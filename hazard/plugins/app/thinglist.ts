@@ -1,5 +1,5 @@
 import { List, ClickableListItem, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, FontStyle, FocusTextBox, Control, TextBox, TextAlign, MenuItems, MenuItem, PromptDialog } from "canvas-forms";
-import { Thing, Switch, Light, SwitchButton, Clock } from "./hazard";
+import { Thing, Switch, Light, SwitchButton, Clock, Temperature } from "./hazard";
 import { sortBy } from "./utils";
 
 class ThingAction extends ListItem<Thing> {
@@ -209,6 +209,66 @@ class ThingActionClock extends ThingAction {
   }
 }
 
+class ThingActionTemperature extends ThingAction {
+  constructor(thing: Temperature) {
+    super(thing);
+
+    this.add(new Label('Temperature'), 20, 20, 160);
+    if (thing.temperature !== null) {
+      this.add(new Label(thing.temperature.toFixed(1) + ' \u2103'), 180, 20, 200);
+    }
+  }
+}
+
+class ThingActionHumidity extends ThingAction {
+  constructor(thing: Temperature) {
+    super(thing);
+
+    this.add(new Label('Humidity'), 20, 20, 160);
+    if (thing.humidity !== null) {
+      this.add(new Label(thing.humidity.toFixed(1) + ' % rH'), 180, 20, 200);
+    }
+  }
+}
+
+class ThingActionLastUpdated extends ThingAction {
+  constructor(thing: Temperature) {
+    super(thing);
+
+    this.add(new Label('Last updated'), 20, 20, 160);
+    this.add(new Label(this.formatLastUpdated()), 180, 20, 200);
+  }
+
+  protected plural(n: number, t: string) {
+    if (n === 1) {
+      return n.toFixed(0) + ' ' + t;
+    } else {
+      return n.toFixed(0) + ' ' + t + 's';
+    }
+  }
+
+  protected formatLastUpdated() : string {
+    if ((this.value as Temperature).last_update === null) {
+      return 'Unknown'
+    }
+    const now = Math.ceil(new Date().getTime() / 1000);
+    let dt = Math.min(1, now - (this.value as Temperature).last_update);
+    if (dt < 60) {
+      return this.plural(dt, 'second') + ' ago';
+    }
+    dt /= 60;
+    if (dt < 60) {
+      return this.plural(dt, 'minute') + ' ago';
+    }
+    dt /= 60;
+    if (dt < 24) {
+      return this.plural(dt, 'hour') + ' ago';
+    }
+    dt /= 24;
+    return this.plural(dt, 'day') + ' ago';
+  }
+}
+
 
 
 export class ThingDialog extends Dialog {
@@ -247,6 +307,15 @@ export class ThingDialog extends Dialog {
     }
     if (thing.hasFeature('clock')) {
       list.addItem(thing as Clock, ThingActionClock);
+    }
+    if (thing.hasFeature('temperature')) {
+      list.addItem(thing as Temperature, ThingActionTemperature);
+    }
+    if (thing.hasFeature('humidity')) {
+      list.addItem(thing as Temperature, ThingActionHumidity);
+    }
+    if (thing.hasFeature('temperature')) {
+      list.addItem(thing as Temperature, ThingActionLastUpdated);
     }
 
     const close = this.add(new Button('Close'), { y2: 20, w: 160 });
@@ -291,6 +360,8 @@ class ThingListItem extends ClickableListItem<Thing> {
       icon.icon = Ionicons.Switch;
     } else if (thing.hasFeature('clock')) {
       icon.icon = Ionicons.Clock;
+    } else if (thing.hasFeature('temperature')) {
+      icon.icon = Ionicons.Thermometer;
     }
     if (thing.hasFeature('light')) {
       icon.color = (thing as Light).on ? 'orange' : 'black';

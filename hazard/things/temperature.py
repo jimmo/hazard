@@ -4,7 +4,7 @@ import math
 
 from hazard.thing import Thing, register_thing
 
-LOG = logging.getLogger('thing')
+LOG = logging.getLogger('hazard')
 
 @register_thing
 class Temperature(Thing):

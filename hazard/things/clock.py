@@ -1,6 +1,9 @@
 from hazard.thing import Thing, register_thing
 
 import asyncio
+import logging
+
+LOG = logging.getLogger('hazard')
 
 @register_thing
 class Clock(Thing):
@@ -32,4 +35,5 @@ class Clock(Thing):
     while True:
       # print('tick')
       await asyncio.sleep(self._interval)
+      LOG.info('Clock tick')
       self._hazard.execute(self._code)

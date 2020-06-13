@@ -7,7 +7,7 @@ import logging
 from hazard.plugins.zigbee.common import ZigBeeTimeout
 from hazard.plugins.zigbee.module import ZigBeeModule
 
-LOG = logging.getLogger('zigbee')
+LOG = logging.getLogger('hazard')
 
 class XBeeProtocol(asyncio.Protocol):
   def __init__(self, xbee_module):

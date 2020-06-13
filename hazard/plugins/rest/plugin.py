@@ -23,7 +23,7 @@ class RestPlugin(HazardPlugin):
       aiohttp.web.post('/api/rest/thing/{id}/remove', self.handle_thing_remove),
       aiohttp.web.post('/api/rest/thing/{id}/action/{action}', self.handle_thing_action),
     ]
-  
+
   def _get_action_or_404(self, request):
     action_id = int(request.match_info['id'])
     if action_id not in self._hazard._actions:
@@ -49,7 +49,7 @@ class RestPlugin(HazardPlugin):
 
   async def handle_action_list(self, request):
     return aiohttp.web.json_response([a.to_json() for a in self._hazard._actions.values()])
-  
+
   async def handle_action_create(self, request):
     data = await request.json()
     action = self._hazard.create_action()
@@ -68,7 +68,7 @@ class RestPlugin(HazardPlugin):
     data = await request.json()
     action.invoke(data)
     return aiohttp.web.json_response({})
-  
+
   async def handle_thing(self, request):
     thing = self._get_thing_or_404(request)
     data = await request.json()

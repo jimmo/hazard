@@ -6,7 +6,7 @@ from hazard.plugins.zigbee.common import ZigBeeDeliveryFailure
 from hazard.plugins.zigbee.device import ZigBeeDevice
 from hazard.plugins.zigbee.group import ZigBeeGroup
 
-LOG = logging.getLogger('zigbee')
+LOG = logging.getLogger('hazard')
 
 class ZigBeeNetwork():
   def __init__(self, hazard, module):

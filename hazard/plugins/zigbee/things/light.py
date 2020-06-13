@@ -11,7 +11,7 @@ import random
 TRANSITION_TIME_HARD = 0
 TRANSITION_TIME_SOFT = 2
 
-LOG = logging.getLogger('zigbee')
+LOG = logging.getLogger('hazard')
 
 
 @register_thing
@@ -70,7 +70,7 @@ class ZigBeeLight(Light):
       return
     prev = self._on
     await super().on()
-    LOG.debug('Sending ON command to "%s"', self._name)
+    LOG.info('Sending ON command to "%s"', self._name)
     try:
       if soft:
         await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(self._level*255), time=TRANSITION_TIME_SOFT)
@@ -87,7 +87,7 @@ class ZigBeeLight(Light):
       return
     prev = self._on
     await super().off()
-    LOG.debug('Sending OFF command to "%s"', self._name)
+    LOG.info('Sending OFF command to "%s"', self._name)
     try:
       if soft and self._level > 0.05:
         await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
@@ -115,7 +115,7 @@ class ZigBeeLight(Light):
     if onoff:
       command += '_on_off'
     time = TRANSITION_TIME_SOFT if soft else TRANSITION_TIME_HARD
-    LOG.debug('Sending LEVEL command to "%s"', self._name)
+    LOG.info('Sending LEVEL command to "%s"', self._name)
     try:
       await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', command, timeout=5, level=int(self._level*255), time=time)
       LOG.debug(' --> done ("%s")', self._name)
@@ -247,7 +247,7 @@ class ZigBeeLightGroup(Light):
     for light_group in self._group.find_subgroup_things(ZigBeeLightGroup, ZigBeeLight):
       await super(ZigBeeLightGroup, light_group).on()
 
-    LOG.debug('Sending ON command to group "%s"', self._name)
+    LOG.info('Sending ON command to group "%s"', self._name)
     if soft:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=int(self._level*253) + 1, time=TRANSITION_TIME_SOFT)
     else:
@@ -267,7 +267,7 @@ class ZigBeeLightGroup(Light):
     for light_group in self._group.find_subgroup_things(ZigBeeLightGroup, ZigBeeLight):
       await super(ZigBeeLightGroup, light_group).off()
 
-    LOG.debug('Sending OFF command to group "%s"', self._name)
+    LOG.info('Sending OFF command to group "%s"', self._name)
     if soft and max_member_level > 0.05:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
     else:

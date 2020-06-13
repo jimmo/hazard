@@ -11,12 +11,12 @@ import zcl.spec
 from hazard.hazard import Hazard
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s %(levelname)7s: %(message)s',
-    handlers=[logging.handlers.RotatingFileHandler('hazard.log', maxBytes=4 * 1024**2, backupCount=100000)]
+    handlers=[]
 )
-LOG = logging.getLogger('main')
-
+LOG = logging.getLogger('hazard')
+LOG.addHandler(logging.handlers.RotatingFileHandler('hazard.log', maxBytes=4 * 1024**2, backupCount=100000))
 
 def signal_handler(_signal, _frame):
   loop = asyncio.get_event_loop()

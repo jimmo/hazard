@@ -1,6 +1,6 @@
 import logging
 
-LOG = logging.getLogger('zigbee')
+LOG = logging.getLogger('hazard')
 
 class ZigBeeModule():
   def __init__(self):

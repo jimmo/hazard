@@ -6,7 +6,7 @@ from hazard.things import Switch, SwitchButton
 
 import zcl.spec
 
-LOG = logging.getLogger('zigbee')
+LOG = logging.getLogger('hazard')
 
 
 @register_thing

@@ -8,7 +8,7 @@ from hazard.thing import Thing, register_thing
 
 DOUBLE_TAP_TIMEOUT = 0.4
 
-LOG = logging.getLogger('zigbee')
+LOG = logging.getLogger('hazard')
 
 
 class SwitchButton:

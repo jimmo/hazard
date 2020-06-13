@@ -115,7 +115,7 @@ class ThingActionSwitchButtonCodeDialog extends Dialog {
     this.add(new Button('Cancel'), { x2: 20, y2: 20 }).click.add(() => {
       this.close(null);
     });
-    this.add(new Button('OK'), { x2: 210, y2: 20 }).click.add(() => {
+    this.add(new Button('OK'), { x2: 230, y2: 20 }).click.add(() => {
       this.button.tap = tap.text;
       this.button.single = single.text;
       this.button.double = double.text;

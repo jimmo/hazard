@@ -12,9 +12,9 @@ class Action:
     return self._name
 
   def load_json(self, json):
-    self._id = json.get('id', None)
-    self._name = json.get('name', '(unknown)')
-    self._code = json.get('code', '')
+    self._id = json.get('id', self._id)
+    self._name = json.get('name', self._name)
+    self._code = json.get('code', self._code)
 
   def to_json(self):
     return {
@@ -31,4 +31,4 @@ class Action:
 
   def invoke(self, data=None):
     self._hazard.execute(self._code)
-  
+

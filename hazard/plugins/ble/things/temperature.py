@@ -5,7 +5,7 @@ import struct
 from hazard.thing import register_thing
 from hazard.things import Temperature
 
-LOG = logging.getLogger('zigbee')
+LOG = logging.getLogger('hazard')
 
 @register_thing
 class BleTemperature(Temperature):
@@ -27,7 +27,7 @@ class BleTemperature(Temperature):
     self._temperature = t / 8
     self._humidity = h / 2
     self._last_update = int(datetime.datetime.now().timestamp())
-    LOG.debug('Temp update,%d,%s,%s,%f,%f', device.rssi, self._ble_adv_name, self._name, h / 2, t / 8)
+    LOG.info('Temp update,%d,%s,%s,%f,%f', device.rssi, self._ble_adv_name, self._name, h / 2, t / 8)
 
   def load_json(self, json):
     super().load_json(json)

@@ -8,7 +8,7 @@ class ActionCodeDialog extends Dialog {
 
     let l = this.add(new Label('Code'), 10, 10);
     l.fit = true;
-    const code = this.add(new TextBox(action.code), { x: 10, y: 40, x2: 10, y2: 60 });
+    const code = this.add(new TextBox(action.code), { x: 10, y: 40, x2: 10, y2: 80 });
     code.fontName = 'monospace';
     code.multiline = true;
 
@@ -66,7 +66,7 @@ class ActionListItem extends ClickableListItem<Action> {
 
     const remove = new MenuItem('Delete');
     remove.click.add(async () => {
-      const result = await new ConfirmDialog('Delete ZigBee group?').modal(this.form);
+      const result = await new ConfirmDialog('Delete action?').modal(this.form);
       if (result) {
         this.action.remove();
         (this.parent as ActionList).update();

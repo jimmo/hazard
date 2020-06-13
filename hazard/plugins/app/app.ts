@@ -1,8 +1,8 @@
 import { Surface, Form, Button, Label, CoordAxis, Tree, TreeNode, SimpleTreeNode, ButtonGroup, SimpleTreeLeafNode, Dialog, TextBox, AlertDialog, Box, Ionicons, FontStyle, Style, StyleFont } from 'canvas-forms';
 import { ZigBeeTree } from './zigbee';
+import { ActionList } from './actionlist';
 import { MapView } from './mapview';
 import { ThingList, GroupList } from './thinglist';
-import { ActionList } from './actionlist';
 
 class HazardStyleFont extends StyleFont {
   get size() {
@@ -49,6 +49,9 @@ form.style.font = new HazardStyleFont();
     return btn;
   }
 
+  addTab('Actions', Ionicons.Flash, () => {
+    const home = container.add(new ActionList(), 0, 0, null, null, 0, 0);
+  });
   addTab('Map', Ionicons.Locate, () => {
     const map = container.add(new MapView(), 0, 0, null, null, 0, 0);
   });
@@ -57,9 +60,6 @@ form.style.font = new HazardStyleFont();
   });
   addTab('Groups', Ionicons.Expand, () => {
     const list = container.add(new GroupList(), 0, 0, null, null, 0, 0);
-  });
-  addTab('Actions', Ionicons.Flash, () => {
-    const list = container.add(new ActionList(), 0, 0, null, null, 0, 0);
   });
   addTab('ZigBee', Ionicons.Hammer, () => {
     const zigbeeTree = container.add(new ZigBeeTree(), 0, 0, null, null, 0, 0);

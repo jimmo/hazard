@@ -6,7 +6,7 @@ from hazard.plugins.zigbee.common import ZigBeeDeliveryFailure, ZigBeeTimeout
 
 import zcl.spec
 
-LOG = logging.getLogger('zigbee')
+LOG = logging.getLogger('hazard')
 
 class ZigBeeDevice():
   def __init__(self, network, addr64=0, addr16=0, name=''):

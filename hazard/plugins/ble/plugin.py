@@ -4,6 +4,7 @@ import hazard.plugins.ble.things
 
 import asyncio
 import bleak
+import os
 
 
 @register_plugin
@@ -25,7 +26,10 @@ class BlePlugin(HazardPlugin):
         manuf = d.metadata.get('manufacturer_data', {}).get(65535, [])
         if d.name.startswith('th') and len(d.name) == 10:
           if d.name in self._registered_ble_names:
+            print(d.name)
             self._registered_ble_names[d.name](d, manuf)
+      os.system('echo remove \'*-*\' | bluetoothctl > /dev/null 2>&1')
+
 
   def start(self):
     loop = asyncio.get_event_loop()

@@ -1,4 +1,4 @@
 #!/bin/bash
 source venv/bin/activate
-bluetoothctl power on
+echo power on | bluetoothctl
 python3 -m hazard.main

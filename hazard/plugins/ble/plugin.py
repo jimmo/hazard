@@ -4,6 +4,7 @@ import hazard.plugins.ble.things
 
 import asyncio
 import bleak
+import logging
 import os
 
 LOG = logging.getLogger('hazard')

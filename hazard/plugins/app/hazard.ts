@@ -157,6 +157,43 @@ export class Temperature extends Thing {
   temperature: number;
   humidity: number;
   last_update: number;
+
+  protected static plural(n: number, t: string) {
+    if (n === 1) {
+      return n.toFixed(0) + ' ' + t;
+    } else {
+      return n.toFixed(0) + ' ' + t + 's';
+    }
+  }
+
+  protected static age(thing: Temperature) : number {
+    const now = Math.ceil(new Date().getTime() / 1000);
+    return Math.max(1, now - thing.last_update);
+  }
+
+  static formatLastUpdated(thing: Temperature) : string {
+    if (thing.last_update === null) {
+      return 'Unknown'
+    }
+    let dt = Temperature.age(thing);
+    if (dt < 60) {
+      return Temperature.plural(dt, 'second') + ' ago';
+    }
+    dt /= 60;
+    if (dt < 60) {
+      return Temperature.plural(dt, 'minute') + ' ago';
+    }
+    dt /= 60;
+    if (dt < 24) {
+      return Temperature.plural(dt, 'hour') + ' ago';
+    }
+    dt /= 24;
+    return Temperature.plural(dt, 'day') + ' ago';
+  }
+
+  static recent(thing: Temperature) : boolean {
+    return Temperature.age(thing) < 15 * 60;
+  }
 }
 Serializer.register(Temperature);
 

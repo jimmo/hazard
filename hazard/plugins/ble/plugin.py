@@ -6,6 +6,7 @@ import asyncio
 import bleak
 import os
 
+LOG = logging.getLogger('hazard')
 
 @register_plugin
 class BlePlugin(HazardPlugin):
@@ -22,14 +23,16 @@ class BlePlugin(HazardPlugin):
   async def _scan(self):
     while True:
       devices = await bleak.discover()
+      LOG.debug('BLE scan found %d devices', len(devices))
       for d in devices:
         manuf = d.metadata.get('manufacturer_data', {}).get(65535, [])
         if d.name.startswith('th') and len(d.name) == 10:
           if d.name in self._registered_ble_names:
             print(d.name)
             self._registered_ble_names[d.name](d, manuf)
+          else:
+            LOG.info('Unknown temperature sensor %s', d.name)
       os.system('echo remove \'*-*\' | bluetoothctl > /dev/null 2>&1')
-
 
   def start(self):
     loop = asyncio.get_event_loop()

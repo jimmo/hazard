@@ -19,7 +19,7 @@ class MapThing extends Control {
       l.icon = Ionicons.Thermometer;
       const sensor = thing as Temperature;
 
-      if (sensor.temperature !== null) {
+      if (Temperature.recent(sensor) && sensor.temperature !== null) {
         const l2 = this.add(new Label(sensor.temperature.toFixed(1) + '\u2103'), 20, 0);
       }
     } else {

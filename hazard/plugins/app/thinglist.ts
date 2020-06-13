@@ -236,40 +236,9 @@ class ThingActionLastUpdated extends ThingAction {
     super(thing);
 
     this.add(new Label('Last updated'), 20, 20, 160);
-    this.add(new Label(this.formatLastUpdated()), 180, 20, 200);
-  }
-
-  protected plural(n: number, t: string) {
-    if (n === 1) {
-      return n.toFixed(0) + ' ' + t;
-    } else {
-      return n.toFixed(0) + ' ' + t + 's';
-    }
-  }
-
-  protected formatLastUpdated() : string {
-    if ((this.value as Temperature).last_update === null) {
-      return 'Unknown'
-    }
-    const now = Math.ceil(new Date().getTime() / 1000);
-    let dt = Math.min(1, now - (this.value as Temperature).last_update);
-    if (dt < 60) {
-      return this.plural(dt, 'second') + ' ago';
-    }
-    dt /= 60;
-    if (dt < 60) {
-      return this.plural(dt, 'minute') + ' ago';
-    }
-    dt /= 60;
-    if (dt < 24) {
-      return this.plural(dt, 'hour') + ' ago';
-    }
-    dt /= 24;
-    return this.plural(dt, 'day') + ' ago';
+    this.add(new Label(Temperature.formatLastUpdated(thing)), 180, 20, 200);
   }
 }
-
-
 
 export class ThingDialog extends Dialog {
   constructor(readonly thing: Thing) {

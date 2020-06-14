@@ -215,7 +215,7 @@ class ThingActionTemperature extends ThingAction {
 
     this.add(new Label('Temperature'), 20, 20, 160);
     if (thing.temperature !== null) {
-      this.add(new Label(thing.temperature.toFixed(1) + ' \u2103'), 180, 20, 200);
+      this.add(new Label(thing.displayTemperature), 180, 20, 200);
     }
   }
 }
@@ -226,7 +226,7 @@ class ThingActionHumidity extends ThingAction {
 
     this.add(new Label('Humidity'), 20, 20, 160);
     if (thing.humidity !== null) {
-      this.add(new Label(thing.humidity.toFixed(1) + ' % rH'), 180, 20, 200);
+      this.add(new Label(thing.displayHumidity), 180, 20, 200);
     }
   }
 }
@@ -236,7 +236,7 @@ class ThingActionLastUpdated extends ThingAction {
     super(thing);
 
     this.add(new Label('Last updated'), 20, 20, 160);
-    this.add(new Label(Temperature.formatLastUpdated(thing)), 180, 20, 200);
+    this.add(new Label(thing.displayLastUpdated), 180, 20, 200);
   }
 }
 

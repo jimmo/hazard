@@ -23,6 +23,7 @@ class Temperature(Thing):
   def to_json(self):
     json = super().to_json()
     json.update({
+      'json_type': 'Temperature',
       'temperature': self._temperature,
       'humidity': self._humidity,
       'last_update': self._last_update,

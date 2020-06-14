@@ -29,7 +29,6 @@ class BlePlugin(HazardPlugin):
         manuf = d.metadata.get('manufacturer_data', {}).get(65535, [])
         if d.name.startswith('th') and len(d.name) == 10:
           if d.name in self._registered_ble_names:
-            print(d.name)
             self._registered_ble_names[d.name](d, manuf)
           else:
             LOG.info('Unknown temperature sensor %s', d.name)

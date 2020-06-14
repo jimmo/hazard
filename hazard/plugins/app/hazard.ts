@@ -8,6 +8,19 @@ class ThingBase {
   features: string[];
 }
 
+export class Status {
+  title_left: Thing;
+  title_center: string;
+  title_right: Thing;
+
+  static async load(): Promise<Status> {
+    let response = await fetch('/api/rest/status');
+    let status = await response.json();
+    return Serializer.deserialize(status);
+  }
+}
+Serializer.register(Status);
+
 export class Thing extends ThingBase {
   static async load(): Promise<Thing[]> {
     let response = await fetch('/api/rest/thing/list');
@@ -56,6 +69,10 @@ export class Thing extends ThingBase {
       })
     });
     return Serializer.deserialize(await response.json);
+  }
+
+  get summary() : string {
+    return this.name;
   }
 }
 Serializer.register(Thing);
@@ -166,16 +183,16 @@ export class Temperature extends Thing {
     }
   }
 
-  protected static age(thing: Temperature) : number {
+  protected get age() : number {
     const now = Math.ceil(new Date().getTime() / 1000);
-    return Math.max(1, now - thing.last_update);
+    return Math.max(1, now - this.last_update);
   }
 
-  static formatLastUpdated(thing: Temperature) : string {
-    if (thing.last_update === null) {
+  get displayLastUpdated() : string {
+    if (this.last_update === null) {
       return 'Unknown'
     }
-    let dt = Temperature.age(thing);
+    let dt = this.age;
     if (dt < 60) {
       return Temperature.plural(dt, 'second') + ' ago';
     }
@@ -191,8 +208,27 @@ export class Temperature extends Thing {
     return Temperature.plural(dt, 'day') + ' ago';
   }
 
-  static recent(thing: Temperature) : boolean {
-    return Temperature.age(thing) < 15 * 60;
+  get isRecent() : boolean {
+    return this.age < 15 * 60;
+  }
+
+  get displayTemperature() : string {
+    if (this.temperature === null) {
+      return '?';
+    } else {
+      return this.temperature.toFixed(1) + ' \u2103'
+    }
+  }
+  get displayHumidity() : string {
+    if (this.humidity === null) {
+      return '?';
+    } else {
+      return this.humidity.toFixed(1) + ' % rH'
+    }
+  }
+
+  get summary() : string {
+    return this.displayTemperature;
   }
 }
 Serializer.register(Temperature);

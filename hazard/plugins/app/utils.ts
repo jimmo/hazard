@@ -23,6 +23,9 @@ export class Serializer {
   }
 
   static create(obj: any) {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
     if (typeof (obj) === 'object') {
       const typeName = obj['json_type'] || obj['type'];
       if (typeName) {
@@ -35,7 +38,7 @@ export class Serializer {
         }
 
         for (const key of Object.keys(obj)) {
-          result[key] = obj[key];
+          result[key] = Serializer.create(obj[key]);
         }
 
         return result;

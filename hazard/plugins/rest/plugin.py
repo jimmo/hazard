@@ -8,9 +8,13 @@ from hazard.thing import get_thing_types
 class RestPlugin(HazardPlugin):
   def __init__(self, hazard):
     super().__init__(hazard)
+    self._title_left = None
+    self._title_center = None
+    self._title_right = None
 
   def get_routes(self):
     return [
+      aiohttp.web.get('/api/rest/status', self.handle_status),
       aiohttp.web.get('/api/rest/reconfigure', self.handle_reconfigure),
       aiohttp.web.get('/api/rest/action/list', self.handle_action_list),
       aiohttp.web.post('/api/rest/action/create', self.handle_action_create),
@@ -24,6 +28,19 @@ class RestPlugin(HazardPlugin):
       aiohttp.web.post('/api/rest/thing/{id}/action/{action}', self.handle_thing_action),
     ]
 
+  def load_json(self, json):
+    super().load_json(json)
+    self._title_left = json.get('title_left', None)
+    self._title_center = json.get('title_center', None)
+    self._title_right = json.get('title_right', None)
+
+  def to_json(self):
+    json = super().to_json()
+    json['title_left'] = self._title_left
+    json['title_center'] = self._title_center
+    json['title_right'] = self._title_right
+    return json
+
   def _get_action_or_404(self, request):
     action_id = int(request.match_info['id'])
     if action_id not in self._hazard._actions:
@@ -35,6 +52,18 @@ class RestPlugin(HazardPlugin):
     if thing_id not in self._hazard._things:
       raise aiohttp.web.HTTPNotFound('Unknown thing')
     return self._hazard._things[thing_id]
+
+  async def handle_status(self, request):
+    left = self._hazard.find_thing(self._title_left) if self._title_left else None
+    right = self._hazard.find_thing(self._title_right) if self._title_right else None
+    status = {
+      'type': 'Status',
+      'json_type': 'Status',
+      'title_left': left.to_json() if left else None,
+      'title_center': self._title_center or '',
+      'title_right': right.to_json() if right else None,
+    }
+    return aiohttp.web.json_response(status)
 
   async def handle_reconfigure(self, request):
     await self._hazard.reconfigure()

@@ -3,6 +3,7 @@ import { ZigBeeTree } from './zigbee';
 import { ActionList } from './actionlist';
 import { MapView } from './mapview';
 import { ThingList, GroupList } from './thinglist';
+import { Status } from './hazard';
 
 class HazardStyleFont extends StyleFont {
   get size() {
@@ -15,10 +16,25 @@ form.style.font = new HazardStyleFont();
 
 (async () => {
   await Ionicons.load();
-  const title = form.add(new Label('1 Wood St', Ionicons.Home), { y: 0 });
+
+  const title = form.add(new Label('loading...', Ionicons.Home), { y: 0 });
   title.style = FontStyle.ITALIC;
   title.fit = true;
   title.coords.center(CoordAxis.X);
+
+  const title_left = form.add(new Label(''), { x: 5, y: 0 });
+  title_left.fit = true;
+  const title_right = form.add(new Label(''), { x2: 5, y: 0 });
+  title_right.fit = true;
+
+  const status = await Status.load();
+  title.text = status.title_center;
+  if (status.title_left) {
+    title_left.text = status.title_left.summary;
+  }
+  if (status.title_right) {
+    title_right.text = status.title_right.summary;
+  }
 
   const tabs = form.add(new ButtonGroup(), { x: 0, h: 40, x2: 0, y2: 0 });
 

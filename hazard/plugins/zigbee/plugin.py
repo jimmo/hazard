@@ -17,6 +17,9 @@ class ZigBeePlugin(HazardPlugin):
     self._module = None
     self._network = None
 
+  def start(self):
+    self._module.connect()
+
   def load_json(self, json):
     super().load_json(json)
     module = json['module']
@@ -27,9 +30,6 @@ class ZigBeePlugin(HazardPlugin):
     self._module.load_json(module)
     self._network = ZigBeeNetwork(self._hazard, self._module)
     self._network.load_json(json.get('network', {}))
-
-  def start(self):
-    self._module.connect()
 
   def to_json(self):
     json = super().to_json()

@@ -6,6 +6,7 @@ import asyncio
 import bleak
 import logging
 import os
+import subprocess
 
 LOG = logging.getLogger('hazard')
 
@@ -32,7 +33,13 @@ class BlePlugin(HazardPlugin):
             self._registered_ble_names[d.name](d, manuf)
           else:
             LOG.info('Unknown temperature sensor %s', d.name)
-      os.system('echo remove \'*-*\' | bluetoothctl > /dev/null 2>&1')
+
+      p = await asyncio.create_subprocess_exec('bluetoothctl', stdin=subprocess.PIPE)
+      await asyncio.sleep(0.5)
+      p.stdin.write(b'remove *\n')
+      await asyncio.sleep(1)
+      await p.communicate(b'\x04')
+      await asyncio.sleep(0.1)
 
   def start(self):
     loop = asyncio.get_event_loop()

@@ -362,3 +362,11 @@ class ZigBeeLightGroup(Light):
 
   def _features(self):
     return super()._features() + ['group'];
+
+  async def reconfigure(self):
+    await super().reconfigure()
+    for light in self._group.find_member_things(ZigBeeLight):
+      try:
+        await light.reconfigure()
+      except:
+        pass

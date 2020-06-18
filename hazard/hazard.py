@@ -120,7 +120,10 @@ class Hazard:
 
   async def reconfigure(self):
     for thing in self._things.values():
-      await thing.reconfigure()
+      try:
+        await thing.reconfigure()
+      except:
+        pass
 
   def create_action(self):
     action = Action(self)

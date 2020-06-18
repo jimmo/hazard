@@ -15,6 +15,7 @@ class Light(Thing):
     self._hue = None
     self._temperature = None
     self._saturation = None
+    self._priority = 0
 
   async def on(self, soft=False):
     self._on = True

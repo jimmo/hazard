@@ -50,8 +50,8 @@ class SwitchButton:
   async def invoke(self):
     LOG.info('Invoking "%s/%s"', self._switch._name, self._name)
     if not self._double:
-      await self.tap()
-      return await self.single()
+      if await self.tap():
+        return await self.single()
 
     if self._waiting_for_double:
       self._waiting_for_double.set_result(True)
@@ -62,25 +62,26 @@ class SwitchButton:
 
     try:
       async with async_timeout.timeout(DOUBLE_TAP_TIMEOUT):
-        await self.tap()
-        await self._waiting_for_double
+        if await self.tap():
+          await self._waiting_for_double
     except asyncio.TimeoutError:
       await self.single()
     finally:
-      self._waiting_for_double.cancel()
+      if self._waiting_for_double:
+        self._waiting_for_double.cancel()
       self._waiting_for_double = None
 
   async def tap(self):
     LOG.info('Tap on "%s/%s"', self._switch._name, self._name)
-    self._switch._hazard.execute(self._tap)
+    return await self._switch._hazard.execute(self._tap)
 
   async def single(self):
     LOG.info('Single tap on "%s/%s"', self._switch._name, self._name)
-    self._switch._hazard.execute(self._single)
+    return await self._switch._hazard.execute(self._single)
 
   async def double(self):
     LOG.info('Double tap on "%s/%s"', self._switch._name, self._name)
-    self._switch._hazard.execute(self._double)
+    return await self._switch._hazard.execute(self._double)
 
 
 @register_thing

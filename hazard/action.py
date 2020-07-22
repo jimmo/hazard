@@ -29,6 +29,6 @@ class Action:
     del self._hazard._actions[self._id]
     self._hazard.save()
 
-  def invoke(self, data=None):
-    self._hazard.execute(self._code)
+  async def invoke(self, data=None):
+    await self._hazard.execute(self._code)
 

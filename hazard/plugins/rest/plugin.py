@@ -95,7 +95,7 @@ class RestPlugin(HazardPlugin):
   async def handle_action_invoke(self, request):
     action = self._get_action_or_404(request)
     data = await request.json()
-    action.invoke(data)
+    await action.invoke(data)
     return aiohttp.web.json_response({})
 
   async def handle_thing(self, request):

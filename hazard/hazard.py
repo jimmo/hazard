@@ -146,9 +146,9 @@ class Hazard:
     except:
       pass
 
-  def execute(self, code):
+  async def execute(self, code):
     if not code.strip():
-      return
+      return True
 
     LOG.debug('Executing code:\n%s', code)
 
@@ -160,6 +160,13 @@ async def __code():
   import datetime
   import time
   import os
+
+  result = True
+
+  def cancel():
+    nonlocal result
+    result = False
+
   try:
 ''' + '\n'.join('    ' + line for line in code.split('\n')) + '''
   except Exception as e:
@@ -169,8 +176,11 @@ async def __code():
     import traceback
     logging.getLogger('hazard').error("Error in event handler: {}: {}\\n{}".format(t.__name__, v, ''.join(traceback.format_tb(tb))))
 
-asyncio.get_event_loop().create_task(__code())
+  return result
+
+self._exec_task = asyncio.get_event_loop().create_task(__code())
 '''
+
     exec(code, {
       'action': self.find_action,
       'thing': self.find_thing,
@@ -184,3 +194,5 @@ asyncio.get_event_loop().create_task(__code())
     }, {
       'self': self,
     })
+
+    return await self._exec_task

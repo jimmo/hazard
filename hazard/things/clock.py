@@ -35,5 +35,5 @@ class Clock(Thing):
     while True:
       # print('tick')
       await asyncio.sleep(self._interval)
-      LOG.info('Clock tick')
+      # LOG.info('Clock tick')
       await self._hazard.execute(self._code)

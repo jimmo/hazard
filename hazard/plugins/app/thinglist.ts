@@ -39,10 +39,10 @@ class ThingActionLightLevel extends ThingAction {
     super(thing);
 
     this.add(new Label('Level'), 30, 10, 100, 50);
-    const slider = this.add(new Slider(thing.level, 0, 1, 0.2), { x: 100, y: 10, x2: 30, h: 50 });
+    const slider = this.add(new Slider(thing.level, 0.1, 1, 0.1), { x: 100, y: 10, x2: 30, h: 50 });
     slider.change.add(() => {
       thing.action('level', {
-        level: Math.max(0.05, slider.value),
+        level: Math.max(0.1, slider.value),
       });
     }, 500);
   }
@@ -53,7 +53,7 @@ class ThingActionColorTemperature extends ThingAction {
     super(thing);
 
     this.add(new Label('Temp'), 30, 10, 100, 50);
-    const slider = this.add(new Slider(thing.temperature, 1200, 10000, 100), { x: 100, y: 10, x2: 30, h: 50 });
+    const slider = this.add(new Slider(thing.temperature, 2400, 10000, 100), { x: 100, y: 10, x2: 30, h: 50 });
     slider.change.add(() => {
       thing.action('temperature', {
         temperature: slider.value,
@@ -67,7 +67,7 @@ class ThingActionColor extends ThingAction {
     super(thing);
 
     this.add(new Label('Colour'), 30, 10, 100, 50);
-    const slider = this.add(new Slider(thing.hue, 0, 1, 0.1), { x: 100, y: 10, x2: 30, h: 50 });
+    const slider = this.add(new Slider(thing.hue, 0, 1, 0.01), { x: 100, y: 10, x2: 30, h: 50 });
     slider.change.add(() => {
       thing.action('hue', {
         hue: slider.value,

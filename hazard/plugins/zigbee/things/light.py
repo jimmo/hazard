@@ -11,6 +11,8 @@ import random
 TRANSITION_TIME_HARD = 0
 TRANSITION_TIME_SOFT = 2
 
+LOW_LEVEL = 0.1
+
 LOG = logging.getLogger('hazard')
 
 
@@ -89,7 +91,7 @@ class ZigBeeLight(Light):
     await super().off()
     LOG.info('Sending OFF command to "%s"', self._name)
     try:
-      if soft and self._level > 0.05:
+      if soft and self._level > LOW_LEVEL:
         await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
       else:
         await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
@@ -129,14 +131,14 @@ class ZigBeeLight(Light):
     if not self._device:
       return
     await super().hue(hue, delta)
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(self._hue*250), dir=0, time=TRANSITION_TIME_SOFT)
+    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(self._hue*253), dir=0, time=TRANSITION_TIME_SOFT)
     self.update_groups()
 
   async def saturation(self, saturation):
     if not self._device:
       return
     await super().saturation(saturation)
-    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_saturation', timeout=5, saturation=int(self._saturation*250), dir=0, time=TRANSITION_TIME_HARD)
+    await self._device.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue_saturation', timeout=5, hue=int(self._hue*253), saturation=int(self._saturation*253), dir=0, time=TRANSITION_TIME_SOFT)
     self.update_groups()
 
   async def temperature(self, temperature):
@@ -238,6 +240,17 @@ class ZigBeeLightGroup(Light):
   def any_member_on(self):
     return any(light._on for light in self._group.find_member_things(ZigBeeLight))
 
+  def _member_temperatures(self):
+    return [light._temperature for light in self._group.find_member_things(ZigBeeLight) if light._on]
+
+  def min_member_temperature(self):
+      t = self._member_temperatures()
+      return int(min(t)) if t else None
+
+  def max_member_temperature(self):
+      t = self._member_temperatures()
+      return int(max(t)) if t else None
+
   async def on(self, soft=False):
     if not self._group:
       return
@@ -268,7 +281,7 @@ class ZigBeeLightGroup(Light):
       await super(ZigBeeLightGroup, light_group).off()
 
     LOG.info('Sending OFF command to group "%s"', self._name)
-    if soft and max_member_level > 0.05:
+    if soft and max_member_level > LOW_LEVEL:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'level_control', 'move_to_level_on_off', timeout=5, level=0, time=TRANSITION_TIME_SOFT)
     else:
       await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'onoff', 'off', timeout=5)
@@ -304,7 +317,18 @@ class ZigBeeLightGroup(Light):
     for light_group in self._group.find_subgroup_things(ZigBeeLightGroup, ZigBeeLight):
       await super(ZigBeeLightGroup, light_group).hue(hue)
 
-    await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(hue*255), dir=0, time=TRANSITION_TIME_SOFT)
+    await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue', timeout=5, hue=int(hue*253), dir=0, time=TRANSITION_TIME_SOFT)
+
+  async def saturation(self, saturation):
+    if not self._group:
+      return
+    await super().saturation(saturation)
+    for light in self._group.find_member_things(ZigBeeLight):
+      await super(ZigBeeLight, light).saturation(saturation)
+    for light_group in self._group.find_subgroup_things(ZigBeeLightGroup, ZigBeeLight):
+      await super(ZigBeeLightGroup, light_group).saturation(saturation)
+
+    await self._group.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, self._endpoint, 'color', 'move_to_hue_saturation', timeout=5, hue=int(hue*253), saturation=int(saturation*253), dir=0, time=TRANSITION_TIME_SOFT)
 
   async def temperature(self, temperature):
     if not self._group:
@@ -321,7 +345,7 @@ class ZigBeeLightGroup(Light):
   async def dim(self, soft=False):
     if not self._group or not self._on:
       return
-    if self.max_member_level() > 0.05:
+    if self.max_member_level() > LOW_LEVEL:
       return await self.level(delta=-0.2)
 
     lights = self._group.find_member_things(ZigBeeLight)
@@ -343,7 +367,7 @@ class ZigBeeLightGroup(Light):
     lights.sort(key=lambda t: -t._priority)
     for light in lights:
       if not light._on:
-        return await light.level(level=0.05, onoff=True, soft=soft)
+        return await light.level(level=LOW_LEVEL, onoff=True, soft=soft)
 
     return await self.level(delta=0.2)
 

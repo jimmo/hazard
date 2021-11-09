@@ -29,6 +29,7 @@ class ZigBeeDevice():
     self._on_announce_callback = callback
 
   def _on_frame(self, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
+    LOG.info("Frame ({}): {} {} {} {} {} {}".format(self._addr16, addr16, source_endpoint, dest_endpoint, cluster, profile, data))
     if addr16 != self._addr16:
       LOG.info('Updating addr16 on {} (rx: 0x{:04x}, config: 0x{:04x})'.format(self.addr64hex(), addr16, self._addr16))
       self._addr16 = addr16
@@ -77,9 +78,12 @@ class ZigBeeDevice():
 
   async def _on_match_descriptors(self, profile, in_clusters, addr16, out_clusters):
     if profile == zcl.spec.Profile.HOME_AUTOMATION and in_clusters == [0x0019]:
-      # Ignore queries for the ugrade cluster.
+      # Ignore queries for the upgrade cluster.
       return
     LOG.warning('Attempted to match descriptors: profile {} / in {} / out {}'.format(profile, in_clusters, out_clusters))
+    # Pretend like we support everything.
+    LOG.info('Accepting match descriptor request')
+    print(await self.zdo('match_desc_resp', status=0, addr16=0x0000, n_match_list=1, match_list=[1]))
 
   async def _on_device_announce(self, capability, addr64, addr16):
     if self._on_announce_callback:

@@ -51,6 +51,7 @@ class ZigBeePlugin(HazardPlugin):
       aiohttp.web.post('/api/zigbee/device/{device}/zdo/{cluster_name}', self.handle_device_zdo),
       aiohttp.web.post('/api/zigbee/device/{device}/zcl/profile/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_device_profile_zcl),
       aiohttp.web.post('/api/zigbee/device/{device}/zcl/cluster/{profile}/{endpoint}/{cluster_name}/{command_name}', self.handle_device_cluster_zcl),
+      aiohttp.web.post('/api/zigbee/device/{dest_device}/replace/{src_device}', self.handle_device_replace),
       aiohttp.web.post('/api/zigbee/group/create', self.handle_group_create),
       aiohttp.web.get('/api/zigbee/group/list', self.handle_group_list),
       aiohttp.web.post('/api/zigbee/group/{group}', self.handle_group),
@@ -93,8 +94,8 @@ class ZigBeePlugin(HazardPlugin):
     self._hazard.save()
     return aiohttp.web.json_response(thing.to_json())
 
-  def get_device_from_request(self, request):
-    addr64 = int(request.match_info['device'], 16)
+  def get_device_from_request(self, request, field='device'):
+    addr64 = int(request.match_info[field], 16)
     device = self._network.find_device(addr64)
     if not device:
       raise aiohttp.web.HTTPNotFound('Unknown device')
@@ -126,6 +127,35 @@ class ZigBeePlugin(HazardPlugin):
     kwargs = await request.json()
     result = await device.zcl_cluster(profile, int(request.match_info['endpoint'], 10), request.match_info['cluster_name'], request.match_info['command_name'], **kwargs)
     return aiohttp.web.json_response(result)
+
+  def find_zigbee_light(self, device):
+    for t in self._network._hazard.find_things(hazard.plugins.zigbee.things.ZigBeeLight):
+      if t._device == device:
+        return t
+    raise aiohttp.web.HTTPNotFound('Unknown thing')
+
+  async def handle_device_replace(self, request):
+    # dest.replaceWith(src)
+    dest = self.get_device_from_request(request, 'dest_device')
+    src = self.get_device_from_request(request, 'src_device')
+    dest_thing = self.find_zigbee_light(dest)
+    print(f"Replace {dest_thing._name}/{dest.addr64hex()} with {src.addr64hex()}")
+    print("dest groups", dest_thing._groups)
+    for group_addr16 in dest_thing._groups:
+      group = self._network.find_group(group_addr16)
+      print(zcl.spec.Profile.HOME_AUTOMATION, dest_thing._endpoint, 'groups', 'add_group', group._addr16, group._name)
+      await src.zcl_cluster(zcl.spec.Profile.HOME_AUTOMATION, dest_thing._endpoint, 'groups', 'add_group', id=group._addr16, name=group._name)
+    print(f"rename {src._name} to {dest._name}")
+    src._name = dest._name
+    print(f"rename {dest._name} to zz ({dest._name})")
+    dest._name = f"zz ({dest._name})"
+    print(f"update dest device {dest_thing._device._addr16}/{dest_thing._device.addr64hex()} to {src._addr16}/{src.addr64hex()}")
+    dest_thing._device = src
+    print(f"reconfigure dest {dest_thing}")
+    await dest_thing.reconfigure()
+    self._network._hazard.save()
+
+    return aiohttp.web.json_response({})
 
   async def handle_group_list(self, request):
     result = [group.to_json() for group in self._network.all_groups()]

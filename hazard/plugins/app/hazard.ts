@@ -158,6 +158,10 @@ export class SwitchButton {
 }
 Serializer.register(SwitchButton);
 
+export class MultiSensor extends Thing {
+}
+Serializer.register(MultiSensor);
+
 export class Clock extends Thing {
   interval: number;
   code: string;

@@ -43,7 +43,7 @@ class BlePlugin(HazardPlugin):
 
   def start(self):
     loop = asyncio.get_event_loop()
-    loop.create_task(self._scan())
+    #loop.create_task(self._scan())
 
   def to_json(self):
     json = super().to_json()

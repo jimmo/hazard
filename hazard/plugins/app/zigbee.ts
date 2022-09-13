@@ -27,6 +27,18 @@ export class ZigBeeDevice {
     return await response.json();
   }
 
+  async replaceWith(src: ZigBeeDevice) {
+    let response = await fetch('/api/zigbee/device/' + this.addr64 + '/replace/' + src.addr64, {
+      method: 'POST',
+      body: Serializer.serialize({}),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    });
+
+    return await response.json();
+  }
+
   async sendZdo(clusterName: string, data: any) {
     data = data || {};
     let response = await fetch('/api/zigbee/device/' + this.addr64 + '/zdo/' + clusterName, {
@@ -353,6 +365,18 @@ class ZigBeeDeviceNode extends SimpleTreeNode {
       this.device.createThing('ZigBeeSwitch');
     });
     items.push(createSwitch);
+
+    items.push(new MenuSeparatorItem());
+
+    const devices = await ZigBeeDevice.load();
+    devices.sort(sortBy('name'));
+    for (const d of devices) {
+      const replaceLight = new MenuItem('Replace ' + d.name);
+      replaceLight.click.add(async () => {
+        d.replaceWith(this.device);
+      });
+      items.push(replaceLight);
+    }
 
     return items;
   }

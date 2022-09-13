@@ -24,7 +24,7 @@ class MapThing extends Control {
       }
     } else {
       l.text = thing.name;
-      l.fontSize = 18;
+      l.fontSize = 10;
     }
 
     if (thing.hasFeature('light')) {

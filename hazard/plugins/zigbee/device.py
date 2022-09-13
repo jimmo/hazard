@@ -41,7 +41,12 @@ class ZigBeeDevice():
 
   def _on_zdo(self, cluster, data):
     cluster_name, seq, kwargs = zcl.spec.decode_zdo(cluster, data)
-    LOG.info('ZDO from "{}": {} {}\n   {}'.format(self._name, seq, cluster_name, kwargs))
+    LOG.info('ZDO from "{}" ({}): {} {}\n   {}'.format(self._name, self._addr16, seq, cluster_name, kwargs))
+    if cluster_name == 'active_ep_resp':
+        if 'active_eps' in kwargs and len(kwargs['active_eps']) == 0:
+            LOG.info('Fixing active eps')
+            kwargs['active_eps'].append(1)
+            kwargs['status'] = 0
 
     if seq in self._inflight:
       #print('  delivering future')
@@ -69,6 +74,7 @@ class ZigBeeDevice():
     if self._on_zcl_callback:
       asyncio.get_event_loop().create_task(self._on_zcl_callback(source_endpoint, dest_endpoint, cluster_name, command_type, command_name, **kwargs))
 
+
   async def _send_default_response(self, endpoint, cluster_name, command_name, status):
     # LOG.info('Sending default response to {} / {} / {} = {}'.format(endpoint, cluster_name, command_name, status))
     # _cluster, command, _args = zcl.spec.get_cluster_rx_command(cluster_name, command_name)
@@ -88,6 +94,12 @@ class ZigBeeDevice():
   async def _on_device_announce(self, capability, addr64, addr16):
     if self._on_announce_callback:
       await self._on_announce_callback()
+    #if self._addr64 == 3781220673614944:
+    #    LOG.info('aanounce from multi')
+    #    print('write attribute')
+    #    print(await self.zcl_profile(0x0104, 1, 'ias_zone', 'write_attributes', attributes=[{'attribute': 0x0010, 'datatype': 'EUI64', 'value': await self._network._module.get_coordinator_addr64()}]))
+
+        # print(await self.zcl_profile(0x0104, 1, 'ias_zone', 'configure_reporting', configs=[{'attribute': 0x0002, 'datatype': 'bitmap16', 'minimum': 0, 'maximum': 0, 'delta': 0 }]))
 
   def _next_seq(self):
     seq = self._seq
@@ -129,6 +141,7 @@ class ZigBeeDevice():
   async def zcl_profile(self, profile, dest_endpoint, cluster_name, command_name, timeout=5, **kwargs):
     seq = self._next_seq()
     cluster, data = zcl.spec.encode_profile_command(cluster_name, command_name, seq, direction=0, default_response=True, **kwargs)
+    print(data)
     return await self._send(seq, 1, dest_endpoint, cluster, profile, data, timeout)
 
   def addr64hex(self):

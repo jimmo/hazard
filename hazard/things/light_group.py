@@ -5,7 +5,8 @@ import math
 from hazard.thing import Thing, register_thing
 from hazard.things.Light import Light, LEVEL_OFF, LEVEL_MIN, LEVEL_ALL, LEVEL_MAX
 
-LOG = logging.getLogger('hazard')
+LOG = logging.getLogger("hazard")
+
 
 @register_thing
 class LightGroup(Light):
@@ -21,9 +22,13 @@ class LightGroup(Light):
             else:
                 await self.level(level=LEVEL_ALL, soft=soft)
         else:
-            if time_aware and (datetime.datetime.now().hour >= 18 or datetime.datetime.now().hour <= 6):
+            if time_aware and (
+                datetime.datetime.now().hour >= 18 or datetime.datetime.now().hour <= 6
+            ):
                 await self.level(level=LEVEL_ALL, soft=soft)
-            elif time_aware and (datetime.datetime.now().hour >= 7 or datetime.datetime.now().hour <= 11):
+            elif time_aware and (
+                datetime.datetime.now().hour >= 7 or datetime.datetime.now().hour <= 11
+            ):
                 await self.level(level=LEVEL_MAX, soft=soft)
             else:
                 await super().on(soft=soft)
@@ -66,13 +71,15 @@ class LightGroup(Light):
 
     def to_json(self):
         obj = super().to_json()
-        obj.update({
-            'json_type': 'Light',
-        })
+        obj.update(
+            {
+                "json_type": "Light",
+            }
+        )
         return obj
 
     def load_json(self, obj):
         super().load_json(obj)
 
     def _features(self):
-        features = super()._features() + ['group']
+        features = super()._features() + ["group"]

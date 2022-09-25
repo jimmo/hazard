@@ -1,19 +1,18 @@
 import logging
 
-LOG = logging.getLogger('hazard')
+LOG = logging.getLogger("hazard")
 
-class ZigBeeModule():
+
+class ZigBeeModule:
     def __init__(self):
-        self._callbacks= {}
+        self._callbacks = {}
         self._unknown = None
 
     def load_json(self, json):
         pass
 
     def to_json(self):
-        return {
-            'type': type(self).__name__
-        }
+        return {"type": type(self).__name__}
 
     def set_unknown_device_handler(self, callback):
         self._unknown = callback
@@ -30,22 +29,44 @@ class ZigBeeModule():
     async def get_pan_id(self):
         pass
 
-    async def unicast(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
+    async def unicast(
+        self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data
+    ):
         pass
 
-    async def multicast(self, group_addr, source_endpoint, dest_endpoint, cluster, profile, data):
+    async def multicast(
+        self, group_addr, source_endpoint, dest_endpoint, cluster, profile, data
+    ):
         pass
 
-    async def broadcast(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
+    async def broadcast(
+        self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data
+    ):
         pass
 
     async def allow_joining(self, allow):
         pass
 
-    def _on_device_frame(self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data):
+    def _on_device_frame(
+        self, addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data
+    ):
         if addr64 in self._callbacks:
-            self._callbacks[addr64](addr16, source_endpoint, dest_endpoint, cluster, profile, data)
+            self._callbacks[addr64](
+                addr16, source_endpoint, dest_endpoint, cluster, profile, data
+            )
         elif self._unknown:
-            self._unknown(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data)
+            self._unknown(
+                addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data
+            )
         else:
-            LOG.warning('Frame from {}/{} {} {} {} {} -- {}'.format(addr64, addr16, source_endpoint, dest_endpoint, cluster, profile, data))
+            LOG.warning(
+                "Frame from {}/{} {} {} {} {} -- {}".format(
+                    addr64,
+                    addr16,
+                    source_endpoint,
+                    dest_endpoint,
+                    cluster,
+                    profile,
+                    data,
+                )
+            )

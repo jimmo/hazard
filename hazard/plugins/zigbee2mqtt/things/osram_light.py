@@ -4,7 +4,7 @@ import logging
 from hazard.thing import register_thing
 from hazard.things import Light
 
-LOG = logging.getLogger('hazard')
+LOG = logging.getLogger("hazard")
 
 
 @register_thing
@@ -14,15 +14,14 @@ class OsramLight(Light):
 
     def to_json(self):
         json = super().to_json()
-        json.update({
-        })
+        json.update({})
         return json
 
     def load_json(self, json):
         super().load_json(json)
 
     async def publish(self, msg):
-        client = self._hazard.find_plugin('ZigBee2MqttPlugin').client()
+        client = self._hazard.find_plugin("ZigBee2MqttPlugin").client()
         await client.publish(f"zigbee2mqtt/{self._name}/set", json.dumps(msg))
 
     async def on(self, soft=False):
@@ -42,4 +41,3 @@ class OsramLight(Light):
     async def level(self, level=None, delta=None, soft=False):
         await super().level(soft)
         # TODO
-

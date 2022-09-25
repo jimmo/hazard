@@ -8,7 +8,7 @@ from hazard.thing import Thing, register_thing
 
 DOUBLE_TAP_TIMEOUT = 0.4
 
-LOG = logging.getLogger('hazard')
+LOG = logging.getLogger("hazard")
 
 
 class SwitchButton:
@@ -16,29 +16,29 @@ class SwitchButton:
         self._switch = switch
         self._name = code
         self._code = code
-        self._tap = ''
-        self._single = ''
-        self._double = ''
+        self._tap = ""
+        self._single = ""
+        self._double = ""
         self._waiting_for_double = None
 
     def load_json(self, obj):
-        self._name = obj.get('name', '')
-        self._code = obj.get('code', {})
+        self._name = obj.get("name", "")
+        self._code = obj.get("code", {})
         if isinstance(self._code, str):
             self._code = json.loads(self._code)
-        self._tap = obj.get('tap', '')
-        self._single = obj.get('single', '')
-        self._double = obj.get('double', '')
+        self._tap = obj.get("tap", "")
+        self._single = obj.get("single", "")
+        self._double = obj.get("double", "")
 
     def to_json(self):
         return {
-            'type': type(self).__name__,
-            'json_type': 'SwitchButton',
-            'code': self._code,
-            'name': self._name,
-            'tap': self._tap,
-            'single': self._single,
-            'double': self._double,
+            "type": type(self).__name__,
+            "json_type": "SwitchButton",
+            "code": self._code,
+            "name": self._name,
+            "tap": self._tap,
+            "single": self._single,
+            "double": self._double,
         }
 
     def name(self):
@@ -93,21 +93,25 @@ class Switch(Thing):
     def load_json(self, obj):
         super().load_json(obj)
         self._buttons = []
-        for b in obj.get('buttons', []):
+        for b in obj.get("buttons", []):
             btn = SwitchButton(self)
             btn.load_json(b)
             self._buttons.append(btn)
 
     def to_json(self):
         obj = super().to_json()
-        obj.update({
-            'json_type': 'Switch',
-            'buttons': [b.to_json() for b in self._buttons],
-        })
+        obj.update(
+            {
+                "json_type": "Switch",
+                "buttons": [b.to_json() for b in self._buttons],
+            }
+        )
         return obj
 
     def _features(self):
-        return super()._features() + ['switch',]
+        return super()._features() + [
+            "switch",
+        ]
 
     def get_button(self, code, create=True):
         for btn in self._buttons:
@@ -122,12 +126,12 @@ class Switch(Thing):
             return None
 
     async def action(self, action, data):
-        btn = self.get_button(data.get('code', ''))
+        btn = self.get_button(data.get("code", ""))
         if not btn:
             return
-        if action == 'invoke':
+        if action == "invoke":
             await btn.invoke()
-        elif action == 'single':
+        elif action == "single":
             await btn.single()
-        elif action == 'double':
+        elif action == "double":
             await btn.double()

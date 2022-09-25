@@ -8,7 +8,8 @@ import logging
 import os
 import subprocess
 
-LOG = logging.getLogger('hazard')
+LOG = logging.getLogger("hazard")
+
 
 @register_plugin
 class BlePlugin(HazardPlugin):
@@ -28,25 +29,27 @@ class BlePlugin(HazardPlugin):
     async def _scan(self):
         while True:
             devices = await bleak.discover()
-            LOG.debug('BLE scan found %d devices', len(devices))
+            LOG.debug("BLE scan found %d devices", len(devices))
             for d in devices:
-                manuf = d.metadata.get('manufacturer_data', {}).get(65535, [])
-                if d.name.startswith('th') and len(d.name) == 10:
+                manuf = d.metadata.get("manufacturer_data", {}).get(65535, [])
+                if d.name.startswith("th") and len(d.name) == 10:
                     if d.name in self._registered_ble_names:
                         self._registered_ble_names[d.name](d, manuf)
                     else:
-                        LOG.info('Unknown temperature sensor %s', d.name)
+                        LOG.info("Unknown temperature sensor %s", d.name)
 
-            p = await asyncio.create_subprocess_exec('bluetoothctl', stdin=subprocess.PIPE)
+            p = await asyncio.create_subprocess_exec(
+                "bluetoothctl", stdin=subprocess.PIPE
+            )
             await asyncio.sleep(0.5)
-            p.stdin.write(b'remove *\n')
+            p.stdin.write(b"remove *\n")
             await asyncio.sleep(1)
-            await p.communicate(b'\x04')
+            await p.communicate(b"\x04")
             await asyncio.sleep(0.1)
 
     def start(self):
         loop = asyncio.get_event_loop()
-        #loop.create_task(self._scan())
+        # loop.create_task(self._scan())
 
     def to_json(self):
         json = super().to_json()

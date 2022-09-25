@@ -3,7 +3,7 @@ import logging
 from hazard.thing import register_thing
 from hazard.things import Light
 
-LOG = logging.getLogger('hazard')
+LOG = logging.getLogger("hazard")
 
 
 @register_thing
@@ -13,8 +13,7 @@ class LifxLight(Light):
 
     def to_json(self):
         json = super().to_json()
-        json.update({
-        })
+        json.update({})
         return json
 
     def load_json(self, json):

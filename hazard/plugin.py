@@ -7,7 +7,7 @@ def register_plugin(cls):
 
 
 def create_plugin(json, hazard):
-    plugin = PLUGINS[json['type']](hazard)
+    plugin = PLUGINS[json["type"]](hazard)
     plugin.load_json(json)
     return plugin
 
@@ -20,9 +20,7 @@ class HazardPlugin:
         pass
 
     def to_json(self):
-        return {
-            'type': type(self).__name__
-        }
+        return {"type": type(self).__name__}
 
     def get_routes(self):
         return []

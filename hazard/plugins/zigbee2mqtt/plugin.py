@@ -5,6 +5,7 @@ import hazard.plugins.zigbee2mqtt.things
 import asyncio_mqtt
 import asyncio
 
+
 @register_plugin
 class ZigBee2MqttPlugin(HazardPlugin):
     def __init__(self, hazard):
@@ -19,9 +20,7 @@ class ZigBee2MqttPlugin(HazardPlugin):
 
     def to_json(self):
         json = super().to_json()
-        json.update({
-            "broker": self._broker
-        })
+        json.update({"broker": self._broker})
         return json
 
     async def start(self):

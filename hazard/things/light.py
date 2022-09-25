@@ -4,7 +4,7 @@ import math
 
 from hazard.thing import Thing, register_thing
 
-LOG = logging.getLogger('hazard')
+LOG = logging.getLogger("hazard")
 
 # Level:
 # 0: All off
@@ -18,6 +18,7 @@ LEVEL_OFF = 0
 LEVEL_MIN = 1
 LEVEL_ALL = 3
 LEVEL_MAX = 7
+
 
 @register_thing
 class Light(Thing):
@@ -40,7 +41,7 @@ class Light(Thing):
 
     async def toggle(self):
         self._on = not self._on
-        LOG.info('Setting "%s" to %s', self._name, 'ON' if self._on else 'OFF')
+        LOG.info('Setting "%s" to %s', self._name, "ON" if self._on else "OFF")
 
     async def level(self, level=None, delta=None, soft=False):
         if delta is not None:
@@ -73,34 +74,36 @@ class Light(Thing):
 
     def to_json(self):
         obj = super().to_json()
-        obj.update({
-            'json_type': 'Light',
-            'on': self._on,
-            'level': self._level,
-            'hue': self._hue,
-            'temperature': self._temperature,
-            'saturation': self._saturation,
-            'on_level': self._on_level,
-        })
+        obj.update(
+            {
+                "json_type": "Light",
+                "on": self._on,
+                "level": self._level,
+                "hue": self._hue,
+                "temperature": self._temperature,
+                "saturation": self._saturation,
+                "on_level": self._on_level,
+            }
+        )
         return obj
 
     def load_json(self, obj):
         super().load_json(obj)
-        self._on = obj.get('on', False)
-        self._level = obj.get('level', LEVEL_ALL)
-        self._hue = obj.get('hue', None)
-        self._temperature = obj.get('temperature', None)
-        self._saturation = obj.get('saturation', None)
-        self._on_level = obj.get('on_level', LEVEL_ALL)
+        self._on = obj.get("on", False)
+        self._level = obj.get("level", LEVEL_ALL)
+        self._hue = obj.get("hue", None)
+        self._temperature = obj.get("temperature", None)
+        self._saturation = obj.get("saturation", None)
+        self._on_level = obj.get("on_level", LEVEL_ALL)
 
     def _features(self):
-        features = super()._features() + ['light'];
+        features = super()._features() + ["light"]
         if self._level is not None:
-            features.append('light-level')
+            features.append("light-level")
         if self._hue is not None:
-            features.append('light-color')
+            features.append("light-color")
         if self._temperature is not None:
-            features.append('light-temperature')
+            features.append("light-temperature")
         if self._hue is not None and self._saturation is not None:
-            features.append('light-saturation')
+            features.append("light-saturation")
         return features

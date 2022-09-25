@@ -5,7 +5,7 @@ import logging
 from hazard.thing import register_thing
 from hazard.things import Switch
 
-LOG = logging.getLogger('hazard')
+LOG = logging.getLogger("hazard")
 
 
 @register_thing
@@ -16,8 +16,7 @@ class HueSwitch(Switch):
 
     def to_json(self):
         json = super().to_json()
-        json.update({
-        })
+        json.update({})
         return json
 
     def load_json(self, json):
@@ -25,7 +24,7 @@ class HueSwitch(Switch):
 
     async def task(self):
         print(f"start hue switch {self._name}")
-        client = self._hazard.find_plugin('ZigBee2MqttPlugin').client()
+        client = self._hazard.find_plugin("ZigBee2MqttPlugin").client()
         async with client.filtered_messages(f"zigbee2mqtt/{self._name}") as messages:
             async for message in messages:
                 print(self._name, message.payload.decode())

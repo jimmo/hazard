@@ -3,7 +3,7 @@ import logging
 from hazard.thing import register_thing
 from hazard.things import Switch
 
-LOG = logging.getLogger('hazard')
+LOG = logging.getLogger("hazard")
 
 
 @register_thing
@@ -13,8 +13,7 @@ class SmartenItSwitch(Switch):
 
     def to_json(self):
         json = super().to_json()
-        json.update({
-        })
+        json.update({})
         return json
 
     def load_json(self, json):

@@ -10,7 +10,7 @@ LOG = logging.getLogger("hazard")
 
 
 @register_thing
-class MultiSensor(Thing):
+class DoorSensor(Thing):
     def __init__(self, hazard):
         super().__init__(hazard)
         self._open = ""
@@ -25,7 +25,7 @@ class MultiSensor(Thing):
         obj = super().to_json()
         obj.update(
             {
-                "json_type": "MultiSensor",
+                "json_type": "DoorSensor",
                 "open": self._open,
                 "close": self._close,
             }
@@ -34,9 +34,9 @@ class MultiSensor(Thing):
 
     def _features(self):
         return super()._features() + [
-            "multi",
+            "door",
         ]
 
-    async def invoke_openclose(self, is_open):
-        LOG.info('Invoking multi open/close "%s/%s"', self._name, is_open)
+    async def invoke(self, is_open):
+        LOG.info('Invoking door open/close "%s/%s"', self._name, is_open)
         await self._hazard.execute(self._open if is_open else self._close)

@@ -6,6 +6,7 @@ class ThingBase {
     zone: string;
     location: ThingLocation;
     features: string[];
+    battery: number;
 }
 
 export class Status {
@@ -155,12 +156,21 @@ export class SwitchButton {
     tap: string;
     single: string;
     double: string;
+    hold: string;
 }
 Serializer.register(SwitchButton);
 
-export class MultiSensor extends Thing {
+export class DoorSensor extends Thing {
+    open: string;
+    close: string;
 }
-Serializer.register(MultiSensor);
+Serializer.register(DoorSensor);
+
+export class MotionSensor extends Thing {
+    active: string;
+    inactive: string;
+}
+Serializer.register(MotionSensor);
 
 export class Clock extends Thing {
     interval: number;

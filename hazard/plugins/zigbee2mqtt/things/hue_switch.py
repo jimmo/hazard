@@ -14,13 +14,23 @@ class HueSwitch(Switch):
         super().__init__(hazard)
         self._task = None
 
-    def to_json(self):
-        json = super().to_json()
-        json.update({})
-        return json
-
-    def load_json(self, json):
-        super().load_json(json)
+    async def dispatch_action(self, message):
+        if message["action"] == "on_press":
+            await self.action("invoke", {"code": "on"})
+        if message["action"] == "on_hold":
+            await self.action("long", {"code": "on"})
+        if message["action"] == "up_press":
+            await self.action("invoke", {"code": "up"})
+        if message["action"] == "up_hold":
+            await self.action("long", {"code": "up"})
+        if message["action"] == "down_press":
+            await self.action("invoke", {"code": "down"})
+        if message["action"] == "down_hold":
+            await self.action("long", {"code": "down"})
+        if message["action"] == "off_press":
+            await self.action("invoke", {"code": "off"})
+        if message["action"] == "off_hold":
+            await self.action("long", {"code": "off"})
 
     async def task(self):
         print(f"start hue switch {self._name}")
@@ -29,11 +39,10 @@ class HueSwitch(Switch):
             async for message in messages:
                 print(self._name, message.payload.decode())
                 message = json.loads(message.payload)
-                b = self._hazard.find_thing("Hobby 1")
-                if message["action"] == "on_press":
-                    await b.on(soft=True)
-                if message["action"] == "off_press":
-                    await b.off(soft=True)
+                if "action" in message:
+                    await self.dispatch_action(message)
+                if "battery" in message:
+                    self._battery = message["battery"]
 
     async def start(self):
         self._task = asyncio.create_task(self.task())
@@ -41,3 +50,6 @@ class HueSwitch(Switch):
     async def stop(self):
         self._task.cancel()
         await self._task
+
+    def _features(self):
+        return super()._features() + ["battery", "switch-hold", "switch-tap"]

@@ -12,9 +12,9 @@ class MapThing extends Control {
         } else if (thing.hasFeature('light')) {
             l.icon = Ionicons.Bulb;
         } else if (thing.hasFeature('switch')) {
-            l.icon = Ionicons.Switch;
+            l.icon = Ionicons.Toggle;
         } else if (thing.hasFeature('clock')) {
-            l.icon = Ionicons.Clock;
+            l.icon = Ionicons.Timer;
         } else if (thing.hasFeature('temperature')) {
             l.icon = Ionicons.Thermometer;
             const sensor = thing as Temperature;
@@ -22,9 +22,13 @@ class MapThing extends Control {
             if (sensor.isRecent && sensor.temperature !== null) {
                 const l2 = this.add(new Label(sensor.summary), 20, 0);
             }
+        } else if (thing.hasFeature('motion')) {
+            l.icon = Ionicons.Magnet;
+        } else if (thing.hasFeature('door')) {
+            l.icon = Ionicons.Moon;
         } else {
             l.text = thing.name;
-            l.fontSize = 10;
+            l.fontSize = 6;
         }
 
         if (thing.hasFeature('light')) {

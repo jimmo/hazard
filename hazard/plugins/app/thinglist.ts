@@ -1,5 +1,5 @@
-import { List, ClickableListItem, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, FontStyle, FocusTextBox, Control, TextBox, TextAlign, MenuItems, MenuItem, PromptDialog } from "canvas-forms";
-import { Thing, Switch, Light, SwitchButton, Clock, Temperature } from "./hazard";
+import { List, ClickableListItem, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, SliderDirection, FontStyle, StyleColor, FocusTextBox, Control, TextBox, TextAlign, MenuItems, MenuItem, PromptDialog } from "canvas-forms";
+import { Thing, Switch, Light, SwitchButton, Clock, Temperature, DoorSensor, MotionSensor } from "./hazard";
 import { sortBy } from "./utils";
 
 class ThingAction extends ListItem<Thing> {
@@ -20,7 +20,7 @@ class ThingActionOnOff extends ThingAction {
         const group = this.add(new ButtonGroup(), { x: 30, y: 10, x2: 30, h: 60 });
         const on = group.add(new Button('On', Ionicons.RadioButtonOn));
         const off = group.add(new Button('Off', Ionicons.RadioButtonOff));
-        const toggle = group.add(new Button('Toggle', Ionicons.Switch));
+        const toggle = group.add(new Button('Toggle', Ionicons.Toggle));
 
         on.click.add(() => {
             thing.action('on');
@@ -39,10 +39,10 @@ class ThingActionLightLevel extends ThingAction {
         super(thing);
 
         this.add(new Label('Level'), 30, 10, 100, 50);
-        const slider = this.add(new Slider(thing.level, 0.1, 1, 0.1), { x: 100, y: 10, x2: 30, h: 50 });
+        const slider = this.add(new LevelSlider(thing.level, 0, 7, 1), { x: 100, y: 10, x2: 30, h: 50 });
         slider.change.add(() => {
             thing.action('level', {
-                level: Math.max(0.1, slider.value),
+                level: slider.value,
             });
         }, 500);
     }
@@ -53,7 +53,7 @@ class ThingActionColorTemperature extends ThingAction {
         super(thing);
 
         this.add(new Label('Temp'), 30, 10, 100, 50);
-        const slider = this.add(new Slider(thing.temperature, 2400, 10000, 100), { x: 100, y: 10, x2: 30, h: 50 });
+        const slider = this.add(new TemperatureSlider(thing.temperature, 0, 7, 1), { x: 100, y: 10, x2: 30, h: 50 });
         slider.change.add(() => {
             thing.action('temperature', {
                 temperature: slider.value,
@@ -96,29 +96,48 @@ class ThingActionSwitchButtonCodeDialog extends Dialog {
 
         let l = this.add(new Label('Single'), 10, 10);
         l.fit = true;
-        const single = this.add(new TextBox(button.single), { x: 10, y: 40, x2: 10, h: 120 });
+        const single = this.add(new TextBox(button.single), { x: 10, y: 40, x2: 10, h: 100 });
         single.fontName = 'monospace';
         single.multiline = true;
 
-        l = this.add(new Label('Double'), 10, 10 + 170);
+        l = this.add(new Label('Double'), 10, 10 + 140);
         l.fit = true;
-        const double = this.add(new TextBox(button.double), { x: 10, y: 40 + 170, x2: 10, h: 120 });
+        const double = this.add(new TextBox(button.double), { x: 10, y: 40 + 140, x2: 10, h: 100 });
         double.fontName = 'monospace';
         double.multiline = true;
 
-        l = this.add(new Label('Tap'), 10, 10 + 170 * 2);
-        l.fit = true;
-        const tap = this.add(new TextBox(button.tap), { x: 10, y: 40 + 170 * 2, x2: 10, h: 120 });
-        tap.fontName = 'monospace';
-        tap.multiline = true;
+        let n = 2;
+        let tap: TextBox = null;
+        if (thing.hasFeature("switch-tap")) {
+            l = this.add(new Label('Tap'), 10, 10 + 140 * 2);
+            l.fit = true;
+            tap = this.add(new TextBox(button.tap), { x: 10, y: 40 + 140 * 2, x2: 10, h: 100 });
+            tap.fontName = 'monospace';
+            tap.multiline = true;
+            n += 1;
+        }
+
+        let hold: TextBox = null;
+        if (thing.hasFeature("switch-hold")) {
+            l = this.add(new Label('Hold'), 10, 10 + 140 * n);
+            l.fit = true;
+            hold = this.add(new TextBox(button.hold), { x: 10, y: 40 + 140 * n, x2: 10, h: 100 });
+            hold.fontName = 'monospace';
+            hold.multiline = true;
+        }
 
         this.add(new Button('Cancel'), { x2: 20, y2: 20 }).click.add(() => {
             this.close(null);
         });
         this.add(new Button('OK'), { x2: 230, y2: 20 }).click.add(() => {
-            this.button.tap = tap.text;
             this.button.single = single.text;
             this.button.double = double.text;
+            if (thing.hasFeature("switch-tap")) {
+                this.button.tap = tap.text;
+            }
+            if (thing.hasFeature("switch-hold")) {
+                this.button.hold = hold.text;
+            }
             this.thing.save();
             this.close(null);
         });
@@ -131,7 +150,6 @@ class ThingActionSwitchButtonCodeDialog extends Dialog {
         this.coords.h.set(650)
         this.coords.center(CoordAxis.Y);
     }
-
 }
 
 class ThingActionSwitchButton extends Button {
@@ -182,6 +200,18 @@ class ThingActionSwitch extends ThingAction {
             }
             prev = btn;
         }
+    }
+}
+
+class ThingActionMotionSensor extends ThingAction {
+    constructor(thing: MotionSensor) {
+        super(thing);
+    }
+}
+
+class ThingActionDoorSensor extends ThingAction {
+    constructor(thing: DoorSensor) {
+        super(thing);
     }
 }
 
@@ -286,6 +316,12 @@ export class ThingDialog extends Dialog {
         if (thing.hasFeature('temperature')) {
             list.addItem(thing as Temperature, ThingActionLastUpdated);
         }
+        if (thing.hasFeature('motion')) {
+            list.addItem(thing as Temperature, ThingActionMotionSensor);
+        }
+        if (thing.hasFeature('door')) {
+            list.addItem(thing as Temperature, ThingActionDoorSensor);
+        }
 
         const close = this.add(new Button('Close'), { y2: 20, w: 160 });
         close.coords.center(CoordAxis.X);
@@ -297,6 +333,12 @@ export class ThingDialog extends Dialog {
         reconfigure.click.add(() => {
             thing.reconfigure();
         });
+
+        if (thing.hasFeature('battery') && thing.battery > 0) {
+            const batteryIcon = this.add(new Label(), { x: 20, y2: 20, w: 30 });
+            batteryIcon.icon = thing.battery < 30 ? Ionicons.BatteryDead : Ionicons.BatteryFull;
+            const batteryLabel = this.add(new Label(thing.battery + "%"), { x: 50, y2: 20 });
+        }
     }
 
     defaultConstraints() {
@@ -308,32 +350,116 @@ export class ThingDialog extends Dialog {
     }
 }
 
+
+class RoundedSlider extends Slider {
+    constructor(value?: number, min?: number, max?: number, snap?: number, direction?: SliderDirection) {
+        super(value, min, max, snap, direction);
+    }
+
+    protected color() : string {
+        return 'white';
+    }
+
+    protected paint(ctx: CanvasRenderingContext2D) {
+        const r = this._direction == SliderDirection.Horizontal ? (this.h - 4) / 2 : (this.w - 4) / 2;
+        this._handleWidth = r * 2;
+
+        ctx.fillStyle = this.color();
+        ctx.strokeStyle = this.form.style.color.insetLeft;
+        ctx.lineWidth = 1;
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(r, 0);
+        ctx.lineTo(this.w - r, 0);
+        ctx.arcTo(this.w, 0, this.w, r, r);
+        ctx.lineTo(this.w, this.h - r);
+        ctx.arcTo(this.w, this.h, this.w - r, this.h, r);
+        ctx.lineTo(r, this.h);
+        ctx.arcTo(0, this.h, 0, this.h - r, r);
+        ctx.lineTo(0, r);
+        ctx.arcTo(0, 0, r, 0, r);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        if (this._direction == SliderDirection.Horizontal) {
+            let x = (this.w - this._handleWidth) * (this._value - this._min) / (this._max - this._min);
+            ctx.ellipse(x + r, this.h / 2, r, r, 0, 0, 2 * Math.PI);
+        } else {
+            let y = (this.h - this._handleWidth) * (this._value - this._min) / (this._max - this._min);
+            ctx.ellipse(this.w / 2, y + r, r, r, 0, 0, 2 * Math.PI);
+        }
+        ctx.fill();
+        ctx.strokeStyle = this.form.style.color.insetLeft;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+}
+
+class LevelSlider extends RoundedSlider {
+    constructor(value?: number, min?: number, max?: number, snap?: number, direction?: SliderDirection) {
+        super(value, min, max, snap, direction);
+    }
+
+    protected color() : string {
+        return StyleColor.hslmap(0.125, 1, 1, 0.125, 1, 0.5, this._value, this._min, this._max);
+    }
+}
+
+class TemperatureSlider extends RoundedSlider {
+    constructor(value?: number, min?: number, max?: number, snap?: number, direction?: SliderDirection) {
+        super(value, min, max, snap, direction);
+    }
+
+    protected color() : string {
+        return StyleColor.hslmap(0.8, 1, 0.75, 0.125, 1, 0.75, this._value, this._min, this._max);
+    }
+}
+
 class ThingListItem extends ClickableListItem<Thing> {
     constructor(readonly thing: Thing) {
         super(thing);
 
         this.border = true;
 
-        const l = this.add(new Label(thing.name), { x: 60, y: 3, x2: 3, y2: 3 });
-        l.align = TextAlign.CENTER;
+        if (thing.hasFeature('light')) {
+            const slider = this.add(new LevelSlider((thing as Light).level, 0, 7, 1), { x: 260, y: 2, x2: 2, y2: 2 });
+            slider.change.add(() => {
+                thing.action('level', {
+                    level: slider.value,
+                });
+            }, 500);
+        }
+
+        const l = this.add(new Label(thing.name), { x: 64, y: 3, w: 200, y2: 3 });
         l.fontSize = 22;
 
         const icon = this.add(new Label(), { x: 3, y: 0, w: 60, y2: 0 });
         icon.fontSize = 52;
         icon.align = TextAlign.CENTER;
+
         if (thing.hasFeature('group')) {
             icon.icon = Ionicons.Expand;
         } else if (thing.hasFeature('light')) {
             icon.icon = Ionicons.Bulb;
         } else if (thing.hasFeature('switch')) {
-            icon.icon = Ionicons.Switch;
+            icon.icon = Ionicons.Toggle;
         } else if (thing.hasFeature('clock')) {
-            icon.icon = Ionicons.Clock;
+            icon.icon = Ionicons.Timer;
         } else if (thing.hasFeature('temperature')) {
             icon.icon = Ionicons.Thermometer;
+        } else if (thing.hasFeature('motion')) {
+            icon.icon = Ionicons.Magnet;
+        } else if (thing.hasFeature('door')) {
+            icon.icon = Ionicons.Moon;
         }
         if (thing.hasFeature('light')) {
             icon.color = (thing as Light).on ? 'orange' : 'black';
+        }
+
+        if (thing.hasFeature('battery') && thing.battery && thing.battery < 30) {
+            icon.color = 'red';
         }
 
         this.click.add(async (ev) => {

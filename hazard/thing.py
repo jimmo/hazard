@@ -51,6 +51,7 @@ class Thing:
         self._name = "(unknown)"
         self._zone = "Home"
         self._location = {"x": 0, "y": 0}
+        self._battery = 0
 
     def load_json(self, json):
         self._id = json.get("id", None)
@@ -67,6 +68,7 @@ class Thing:
             "zone": self._zone,
             "features": self._features(),
             "location": self._location,
+            "battery": self._battery,
         }
 
     def id(self):

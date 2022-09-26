@@ -19,6 +19,8 @@ LEVEL_MIN = 1
 LEVEL_ALL = 3
 LEVEL_MAX = 7
 
+TEMP_COOL = 0
+TEMP_WARM = 7
 
 @register_thing
 class Light(Thing):
@@ -45,6 +47,7 @@ class Light(Thing):
 
     async def level(self, level=None, delta=None, soft=False):
         if delta is not None:
+            print(f"delta {delta} to {self._level}")
             level = self._level + delta
 
         self._level = min(LEVEL_MAX, max(0, level))
@@ -62,10 +65,10 @@ class Light(Thing):
     #         self._hue += delta
     #         self._hue -= math.floor(self._hue)
 
-    # async def temperature(self, temperature):
-    #     if not self._on:
-    #         return
-    #     self._temperature = temperature
+    async def temperature(self, temperature):
+        if not self._on:
+            return
+        self._temperature = temperature
 
     # async def saturation(self, saturation):
     #     if not self._on:
@@ -78,23 +81,35 @@ class Light(Thing):
             {
                 "json_type": "Light",
                 "on": self._on,
-                "level": self._level,
-                "hue": self._hue,
-                "temperature": self._temperature,
-                "saturation": self._saturation,
                 "on_level": self._on_level,
             }
         )
+        if self._level is not None:
+            obj.update({
+                "level": self._level,
+            })
+        if self._hue is not None:
+            obj.update({
+                "hue": self._hue,
+            })
+        if self._temperature is not None:
+            obj.update({
+                "temperature": self._temperature,
+            })
+        if self._saturation is not None:
+            obj.update({
+                "saturation": self._saturation,
+            })
         return obj
 
     def load_json(self, obj):
         super().load_json(obj)
-        self._on = obj.get("on", False)
-        self._level = obj.get("level", LEVEL_ALL)
-        self._hue = obj.get("hue", None)
-        self._temperature = obj.get("temperature", None)
-        self._saturation = obj.get("saturation", None)
-        self._on_level = obj.get("on_level", LEVEL_ALL)
+        self._on = obj.get("on", self._on)
+        self._level = obj.get("level", self._level)
+        self._hue = obj.get("hue", self._hue)
+        self._temperature = obj.get("temperature", self._temperature)
+        self._saturation = obj.get("saturation", self._saturation)
+        self._on_level = obj.get("on_level", self._on_level)
 
     def _features(self):
         features = super()._features() + ["light"]

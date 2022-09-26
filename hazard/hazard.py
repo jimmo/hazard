@@ -171,7 +171,7 @@ async def __code():
 
     try:
 """
-            + "\n".join("    " + line for line in code.split("\n"))
+            + "\n".join("        " + line for line in code.split("\n"))
             + """
     except Exception as e:
         import sys

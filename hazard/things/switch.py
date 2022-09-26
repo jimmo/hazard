@@ -19,16 +19,16 @@ class SwitchButton:
         self._tap = ""
         self._single = ""
         self._double = ""
+        self._hold = ""
         self._waiting_for_double = None
 
     def load_json(self, obj):
         self._name = obj.get("name", "")
         self._code = obj.get("code", {})
-        if isinstance(self._code, str):
-            self._code = json.loads(self._code)
         self._tap = obj.get("tap", "")
         self._single = obj.get("single", "")
         self._double = obj.get("double", "")
+        self._hold = obj.get("hold", "")
 
     def to_json(self):
         return {
@@ -39,6 +39,7 @@ class SwitchButton:
             "tap": self._tap,
             "single": self._single,
             "double": self._double,
+            "hold": self._hold,
         }
 
     def name(self):
@@ -83,6 +84,10 @@ class SwitchButton:
         LOG.info('Double tap on "%s/%s"', self._switch._name, self._name)
         return await self._switch._hazard.execute(self._double)
 
+    async def hold(self):
+        LOG.info('Hold on "%s/%s"', self._switch._name, self._name)
+        return await self._switch._hazard.execute(self._hold)
+
 
 @register_thing
 class Switch(Thing):
@@ -109,9 +114,7 @@ class Switch(Thing):
         return obj
 
     def _features(self):
-        return super()._features() + [
-            "switch",
-        ]
+        return super()._features() + ["switch",]
 
     def get_button(self, code, create=True):
         for btn in self._buttons:
@@ -131,7 +134,11 @@ class Switch(Thing):
             return
         if action == "invoke":
             await btn.invoke()
+        elif action == "tap":
+            await btn.tap()
         elif action == "single":
             await btn.single()
         elif action == "double":
             await btn.double()
+        elif action == "hold":
+            await btn.hold()

@@ -10,7 +10,7 @@
   "author": "Jim Mussared <jim.mussared@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "canvas-forms": "0.0.3"
+    "canvas-forms": "^0.0.6"
   },
   "devDependencies": {
     "rollup": "^2.16.0",

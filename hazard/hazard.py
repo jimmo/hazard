@@ -5,8 +5,8 @@ import logging
 import urllib.request
 import collections
 
-from hazard.thing import create_thing, create_thing_from_json
-import hazard.things
+from hazard.thing import Thing, create_thing, create_thing_from_json
+from hazard.things import LIGHT_LEVELS, LIGHT_TEMPS
 
 from hazard.plugin import create_plugin
 import hazard.plugins
@@ -75,7 +75,7 @@ class Hazard:
     def save(self):
         config = {
             "plugins": [p.to_json() for p in self._plugins.values()],
-            "things": [t.to_json() for t in self._things.values()],
+            "things": [t.to_json() for t in sorted(self._things.values(), key=lambda t: (type(t).__name__, t._name))],
             "actions": [a.to_json() for a in self._actions.values()],
             "state": self._state,
         }
@@ -186,22 +186,26 @@ self._exec_task = asyncio.get_event_loop().create_task(__code())
 """
         )
 
-        exec(
-            code,
-            {
-                "action": self.find_action,
-                "thing": self.find_thing,
-                "things": self.all_things,
-                "state": self._state,
-                "hour": lambda: datetime.datetime.now().hour,
-                "minute": lambda: datetime.datetime.now().minute,
-                "http_get": self.http_get,
-                "http_post": self.http_post,
-                "hazard": self,
-            },
-            {
-                "self": self,
-            },
-        )
+        g = {
+            "action": self.find_action,
+            "thing": self.find_thing,
+            "things": self.all_things,
+            "state": self._state,
+            "hour": lambda: datetime.datetime.now().hour,
+            "minute": lambda: datetime.datetime.now().minute,
+            "http_get": self.http_get,
+            "http_post": self.http_post,
+            "hazard": self,
+        }
+        l = {
+            "self": self,
+        }
 
-        return await self._exec_task
+        g.update(LIGHT_LEVELS)
+        g.update(LIGHT_TEMPS)
+
+        exec(code, g, l)
+
+        v = await self._exec_task
+        await Thing.flush_all(self)
+        return v

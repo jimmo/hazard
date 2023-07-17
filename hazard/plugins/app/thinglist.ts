@@ -206,12 +206,52 @@ class ThingActionSwitch extends ThingAction {
 class ThingActionMotionSensor extends ThingAction {
     constructor(thing: MotionSensor) {
         super(thing);
+
+        let l = this.add(new Label('Active'), 20, 20, 100);
+        const active = this.add(new TextBox(thing.active), { x: 20, y: 60, x2: 20, h: 100 });
+        active.multiline = true;
+        active.fontName = 'monospace';
+
+        active.change.add(() => {
+            thing.active = active.text;
+            thing.save();
+        }, 1000);
+
+        l = this.add(new Label('Inactive'), 20, 170, 100);
+        const inactive = this.add(new TextBox(thing.inactive), { x: 20, y: 210, x2: 20, h: 100 });
+        inactive.multiline = true;
+        inactive.fontName = 'monospace';
+
+        inactive.change.add(() => {
+            thing.inactive = inactive.text;
+            thing.save();
+        }, 1000);
     }
 }
 
 class ThingActionDoorSensor extends ThingAction {
     constructor(thing: DoorSensor) {
         super(thing);
+
+        let l = this.add(new Label('Open'), 20, 20, 100);
+        const open = this.add(new TextBox(thing.open), { x: 20, y: 60, x2: 20, h: 100 });
+        open.multiline = true;
+        open.fontName = 'monospace';
+
+        open.change.add(() => {
+            thing.open = open.text;
+            thing.save();
+        }, 1000);
+
+        l = this.add(new Label('Close'), 20, 170, 100);
+        const close = this.add(new TextBox(thing.close), { x: 20, y: 210, x2: 20, h: 100 });
+        close.multiline = true;
+        close.fontName = 'monospace';
+
+        close.change.add(() => {
+            thing.close = close.text;
+            thing.save();
+        }, 1000);
     }
 }
 
@@ -430,32 +470,42 @@ class ThingListItem extends ClickableListItem<Thing> {
                     level: slider.value,
                 });
             }, 500);
+
+            const l = this.add(new Label(thing.name), { x: 64, y: 3, w: 200, y2: 3 });
+            l.fontSize = 22;
+        } else {
+            const l = this.add(new Label(thing.name), { x: 64, y: 3, x2: 10, y2: 3 });
+            l.fontSize = 22;
         }
 
-        const l = this.add(new Label(thing.name), { x: 64, y: 3, w: 200, y2: 3 });
-        l.fontSize = 22;
-
         const icon = this.add(new Label(), { x: 3, y: 0, w: 60, y2: 0 });
-        icon.fontSize = 52;
+        icon.fontSize = 46;
         icon.align = TextAlign.CENTER;
 
         if (thing.hasFeature('group')) {
-            icon.icon = Ionicons.Expand;
+            icon.icon = Ionicons.GridOutline;
+            if (thing.hasFeature('light') && (thing as Light).on) {
+                icon.icon = Ionicons.Grid;
+                icon.color = 'orange';
+            }
         } else if (thing.hasFeature('light')) {
-            icon.icon = Ionicons.Bulb;
+            if ((thing as Light).on) {
+                icon.icon = Ionicons.Bulb;
+                icon.color = 'orange';
+            } else {
+                icon.icon = Ionicons.BulbOutline;
+                icon.color = 'black';
+            }
         } else if (thing.hasFeature('switch')) {
-            icon.icon = Ionicons.Toggle;
+            icon.icon = Ionicons.ToggleOutline;
         } else if (thing.hasFeature('clock')) {
-            icon.icon = Ionicons.Timer;
+            icon.icon = Ionicons.TimerOutline;
         } else if (thing.hasFeature('temperature')) {
-            icon.icon = Ionicons.Thermometer;
+            icon.icon = Ionicons.ThermometerOutline;
         } else if (thing.hasFeature('motion')) {
-            icon.icon = Ionicons.Magnet;
+            icon.icon = Ionicons.MagnetOutline;
         } else if (thing.hasFeature('door')) {
-            icon.icon = Ionicons.Moon;
-        }
-        if (thing.hasFeature('light')) {
-            icon.color = (thing as Light).on ? 'orange' : 'black';
+            icon.icon = Ionicons.MoonOutline;
         }
 
         if (thing.hasFeature('battery') && thing.battery && thing.battery < 30) {

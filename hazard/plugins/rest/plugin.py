@@ -1,7 +1,7 @@
 import aiohttp
 
 from hazard.plugin import HazardPlugin, register_plugin
-from hazard.thing import get_thing_types
+from hazard.thing import Thing, get_thing_types
 
 
 @register_plugin
@@ -59,16 +59,16 @@ class RestPlugin(HazardPlugin):
         return self._hazard._things[thing_id]
 
     async def handle_status(self, request):
-        left = self._hazard.find_thing(self._title_left) if self._title_left else None
-        right = (
-            self._hazard.find_thing(self._title_right) if self._title_right else None
-        )
+        # left = self._hazard.find_thing(self._title_left) if self._title_left else None
+        # right = (
+        #     self._hazard.find_thing(self._title_right) if self._title_right else None
+        # )
         status = {
             "type": "Status",
             "json_type": "Status",
-            "title_left": left.to_json() if left else None,
+            "title_left": "",#left.to_json() if left else None,
             "title_center": self._title_center or "",
-            "title_right": right.to_json() if right else None,
+            "title_right": "",#right.to_json() if right else None,
         }
         return aiohttp.web.json_response(status)
 
@@ -132,7 +132,9 @@ class RestPlugin(HazardPlugin):
     async def handle_thing_action(self, request):
         thing = self._get_thing_or_404(request)
         data = await request.json()
+        print(data)
         await thing.action(request.match_info["action"], data)
+        await Thing.flush_all(self._hazard)
         return aiohttp.web.json_response({})
 
     async def handle_thing_remove(self, request):

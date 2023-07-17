@@ -23,15 +23,14 @@ class SmartenItSwitch(Switch):
 
     async def task(self):
         print(f"start smartenit switch {self._name}")
-        client = self._hazard.find_plugin("ZigBee2MqttPlugin").client()
-        async with client.filtered_messages(f"zigbee2mqtt/{self._name}") as messages:
-            async for message in messages:
-                print(self._name, message.payload.decode())
-                message = json.loads(message.payload)
-                if "action" in message:
-                    await self.dispatch_action(message)
-                if "battery_low" in message:
-                    self._battery = 5 if message["battery_low"] else 100
+        plugin = self._hazard.find_plugin("ZigBee2MqttPlugin")
+        async for message in plugin.topic_messages(f"zigbee2mqtt/{self._name}"):
+            print(self._name, message.payload.decode())
+            message = json.loads(message.payload)
+            if "action" in message:
+                await self.dispatch_action(message)
+            if "battery_low" in message:
+                self._battery = 5 if message["battery_low"] else 100
 
     async def start(self):
         self._task = asyncio.create_task(self.task())

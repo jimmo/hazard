@@ -13,14 +13,35 @@ LOG = logging.getLogger("hazard")
 # 3: All bulbs on lowest
 # 4,5,6: Dim levels
 # 7: Full brightness
-
 LEVEL_OFF = 0
 LEVEL_MIN = 1
 LEVEL_ALL = 3
+LEVEL_DIM = LEVEL_ALL
 LEVEL_MAX = 7
+
+# LEVEL_DIM at night, and LEVEL_MAX during the day.
+LEVEL_TIME_AWARE = -1
 
 TEMP_COOL = 0
 TEMP_WARM = 7
+
+LIGHT_LEVELS = {}
+LIGHT_TEMPS = {}
+
+def _get_all_levels():
+    for n,v in globals().items():
+        if n.startswith("LEVEL_"):
+            LIGHT_LEVELS[n] = v
+        if n.startswith("TEMP_"):
+            LIGHT_TEMPS[n] = v
+
+_get_all_levels()
+
+def resolve_time_aware_level():
+    if datetime.datetime.now().hour >= 18 or datetime.datetime.now().hour <= 6:
+        return LEVEL_DIM
+    else:
+        return LEVEL_MAX
 
 @register_thing
 class Light(Thing):
@@ -33,11 +54,11 @@ class Light(Thing):
         self._saturation = None
         self._on_level = LEVEL_ALL
 
-    async def on(self, soft=False):
+    async def on(self, soft=True):
         self._on = True
         LOG.info('Setting "%s" to ON', self._name)
 
-    async def off(self, soft=False):
+    async def off(self, soft=True):
         self._on = False
         LOG.info('Setting "%s" to OFF', self._name)
 
@@ -45,35 +66,34 @@ class Light(Thing):
         self._on = not self._on
         LOG.info('Setting "%s" to %s', self._name, "ON" if self._on else "OFF")
 
-    async def level(self, level=None, delta=None, soft=False):
+    async def level(self, level=None, delta=None, soft=True, toggle=False):
         if delta is not None:
-            print(f"delta {delta} to {self._level}")
             level = self._level + delta
 
-        self._level = min(LEVEL_MAX, max(0, level))
+        if level == LEVEL_TIME_AWARE:
+            level = resolve_time_aware_level()
+
+        level = min(LEVEL_MAX, max(0, level))
+
+        if toggle:
+            if not self._on:
+                self._level = level
+            elif self._level == level:
+                if self._level == LEVEL_DIM:
+                    self._level = LEVEL_MAX
+                else:
+                    self._level = LEVEL_DIM
+            else:
+                self._level = level
+        else:
+            self._level = level
+
         self._on = self._level >= self._on_level
         LOG.info('Setting "%s" level to %d', self._name, self._level)
 
-    # async def hue(self, hue=None, delta=None):
-    #     if not self._on:
-    #         return
-    #     if hue is not None:
-    #         self._hue = min(1, max(0, hue))
-    #     elif delta is not None:
-    #         if self._hue is None:
-    #             self._hue = 0
-    #         self._hue += delta
-    #         self._hue -= math.floor(self._hue)
-
     async def temperature(self, temperature):
-        if not self._on:
-            return
+        LOG.info(f'Setting "{self._name}" temperature to {temperature}')
         self._temperature = temperature
-
-    # async def saturation(self, saturation):
-    #     if not self._on:
-    #         return
-    #     self._saturation = saturation
 
     def to_json(self):
         obj = super().to_json()

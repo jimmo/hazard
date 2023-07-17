@@ -14,24 +14,28 @@ class SonoffButton(Switch):
         super().__init__(hazard)
 
     async def dispatch_action(self, message):
-        if message["action"] == "single":
-            await self.action("single", {"code": "button"})
-        if message["action"] == "long":
-            await self.action("hold", {"code": "button"})
-        if message["action"] == "double":
-            await self.action("double", {"code": "button"})
+        # if message["action"] == "single":
+        #     await self.action("single", {"code": "button"})
+        # if message["action"] == "long":
+        #     await self.action("hold", {"code": "button"})
+        # if message["action"] == "double":
+        #     await self.action("double", {"code": "button"})
+
+        msg = {"brightness": 40}
+        msg["transition"] = 1
+        client = self._hazard.find_plugin("ZigBee2MqttPlugin").client()
+        await client.publish(f"zigbee2mqtt/Hobby/set", json.dumps(msg))
 
     async def task(self):
         print(f"start sonoff button {self._name}")
-        client = self._hazard.find_plugin("ZigBee2MqttPlugin").client()
-        async with client.filtered_messages(f"zigbee2mqtt/{self._name}") as messages:
-            async for message in messages:
-                print(self._name, message.payload.decode())
-                message = json.loads(message.payload)
-                if "action" in message:
-                    await self.dispatch_action(message)
-                if "battery" in message:
-                    self._battery = message["battery"]
+        plugin = self._hazard.find_plugin("ZigBee2MqttPlugin")
+        async for message in plugin.topic_messages(f"zigbee2mqtt/{self._name}"):
+            print(self._name, message.payload.decode())
+            message = json.loads(message.payload)
+            if "action" in message:
+                await self.dispatch_action(message)
+            if "battery" in message:
+                self._battery = message["battery"]
 
     async def start(self):
         self._task = asyncio.create_task(self.task())

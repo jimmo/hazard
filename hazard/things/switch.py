@@ -2,6 +2,7 @@ import async_timeout
 import asyncio
 import json
 import logging
+import time
 
 from hazard.thing import Thing, register_thing
 
@@ -48,8 +49,7 @@ class SwitchButton:
     def code(self):
         return self._code
 
-    async def invoke(self):
-        LOG.info('Invoking "%s/%s"', self._switch._name, self._name)
+    async def _invoke_task(self):
         if not self._double:
             if await self.tap():
                 return await self.single()
@@ -71,6 +71,10 @@ class SwitchButton:
             if self._waiting_for_double:
                 self._waiting_for_double.cancel()
             self._waiting_for_double = None
+
+    async def invoke(self):
+        LOG.info('Invoking "%s/%s" %f', self._switch._name, self._name, time.monotonic())
+        asyncio.create_task(self._invoke_task())
 
     async def tap(self):
         LOG.info('Tap on "%s/%s"', self._switch._name, self._name)

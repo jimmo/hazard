@@ -84,6 +84,7 @@ class Thing:
         return []
 
     async def action(self, action, data):
+        print("action", action, data)
         await getattr(self, action)(**data)
 
     def remove(self):
@@ -97,3 +98,12 @@ class Thing:
 
     async def stop(self):
         pass
+
+    @staticmethod
+    async def flush(hazard):
+        pass
+
+    @staticmethod
+    async def flush_all(hazard):
+        for cls in THINGS.values():
+            await cls.flush(hazard)

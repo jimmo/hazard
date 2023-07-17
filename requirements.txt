@@ -1,8 +1,8 @@
 aiohttp
-bleak
+#bleak
 async_timeout
-pyserial
-pyserial_asyncio
+#pyserial
+#pyserial_asyncio
 #-e ../python-zcl/
 #-e ../led-roof/
-asyncio-mqtt
+aiomqtt

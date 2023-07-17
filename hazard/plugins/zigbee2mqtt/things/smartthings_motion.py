@@ -15,15 +15,14 @@ class SmartThingsMotionSensor(MotionSensor):
 
     async def task(self):
         print(f"start smartthings motion sensor {self._name}")
-        client = self._hazard.find_plugin("ZigBee2MqttPlugin").client()
-        async with client.filtered_messages(f"zigbee2mqtt/{self._name}") as messages:
-            async for message in messages:
-                print(self._name, message.payload.decode())
-                message = json.loads(message.payload)
-                if "occupancy" in message:
-                    await self.invoke(message["occupancy"])
-                if "battery" in message:
-                    self._battery = message["battery"]
+        plugin = self._hazard.find_plugin("ZigBee2MqttPlugin")
+        async for message in plugin.topic_messages(f"zigbee2mqtt/{self._name}"):
+            print(self._name, message.payload.decode())
+            message = json.loads(message.payload)
+            if "occupancy" in message:
+                await self.invoke(message["occupancy"])
+            if "battery" in message:
+                self._battery = message["battery"]
 
     async def start(self):
         self._task = asyncio.create_task(self.task())

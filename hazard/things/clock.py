@@ -13,8 +13,13 @@ class Clock(Thing):
         self._name = "Clock"
         self._interval = 10
         self._code = ""
-        loop = asyncio.get_event_loop()
-        loop.create_task(self._tick())
+
+    async def start(self):
+        self._task = asyncio.create_task(self.task())
+
+    async def stop(self):
+        self._task.cancel()
+        await self._task
 
     def _features(self):
         return super()._features() + ["clock"]
@@ -34,9 +39,8 @@ class Clock(Thing):
         )
         return json
 
-    async def _tick(self):
+    async def task(self):
         while True:
-            # print('tick')
             await asyncio.sleep(self._interval)
             # LOG.info('Clock tick')
             await self._hazard.execute(self._code)

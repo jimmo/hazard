@@ -88,12 +88,8 @@ class LightGroup(Light):
     async def reconfigure(self):
         await super().reconfigure()
         LOG.info('Reconfigure light group "%s/%s"', self.zone(), self.name())
-        if self.zone() != "Downstairs":
-            return
         plugin = self._hazard.find_plugin("ZigBee2MqttPlugin")
         for d in self.things():
             LOG.info('Add "%s" to "%s"', d.name(), self.name())
-            if d.zone() != "Downstairs":
-                continue
             await plugin.publish(f"zigbee2mqtt/bridge/request/group/members/add", {"group": self.name(), "device": d.name()})
             await asyncio.sleep(0.5)

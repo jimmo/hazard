@@ -81,6 +81,7 @@ class Hazard:
         }
         with open("/home/jimmo/.hazard", "w") as f:
             json.dump(config, f, indent=2)
+        LOG.info("Saved config")
 
     def find_plugin(self, cls):
         if not isinstance(cls, str):
@@ -195,6 +196,7 @@ self._exec_task = asyncio.get_event_loop().create_task(__code())
             "minute": lambda: datetime.datetime.now().minute,
             "http_get": self.http_get,
             "http_post": self.http_post,
+            "lerp": lambda a, b, x, y, v: x + ((v-a)/(b-a))*(y-x),
             "hazard": self,
         }
         l = {

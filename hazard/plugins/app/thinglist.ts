@@ -1,5 +1,5 @@
 import { List, ClickableListItem, ListItem, Label, AlertDialog, Dialog, CoordAxis, Button, ButtonGroup, Ionicons, Slider, SliderDirection, FontStyle, StyleColor, FocusTextBox, Control, TextBox, TextAlign, MenuItems, MenuItem, PromptDialog } from "canvas-forms";
-import { Thing, Switch, Light, SwitchButton, Clock, Temperature, DoorSensor, MotionSensor } from "./hazard";
+import { Thing, Switch, Light, SwitchButton, Clock, Roof, Temperature, DoorSensor, MotionSensor } from "./hazard";
 import { sortBy } from "./utils";
 
 class ThingAction extends ListItem<Thing> {
@@ -31,6 +31,19 @@ class ThingActionOnOff extends ThingAction {
         toggle.click.add(() => {
             thing.action('toggle');
         });
+    }
+}
+
+class ThingActionOnLevel extends ThingAction {
+    constructor(thing: Light) {
+        super(thing);
+
+        this.add(new Label('On at'), 30, 10, 100, 50);
+        const slider = this.add(new LevelSlider(thing.on_level, 1, 3, 1), { x: 100, y: 10, x2: 30, h: 50 });
+        slider.change.add(() => {
+            thing.on_level = slider.value;
+            thing.save();
+        }, 500);
     }
 }
 
@@ -87,6 +100,31 @@ class ThingActionSaturation extends ThingAction {
                 saturation: slider.value,
             });
         }, 500);
+    }
+}
+
+class ThingActionRgbw extends ThingAction {
+    constructor(thing: Roof) {
+        super(thing);
+
+        this.add(new Label('Red'), 30, 10, 100, 50);
+        const r = this.add(new Slider(thing.rgbw[0], 0, 1, 1/256), { x: 100, y: 10, x2: 30, h: 50 });
+        this.add(new Label('Green'), 30, 50, 100, 50);
+        const g = this.add(new Slider(thing.rgbw[1], 0, 1, 1/256), { x: 100, y: 50, x2: 30, h: 50 });
+        this.add(new Label('Blue'), 30, 90, 100, 50);
+        const b = this.add(new Slider(thing.rgbw[2], 0, 1, 1/256), { x: 100, y: 90, x2: 30, h: 50 });
+        this.add(new Label('White'), 30, 130, 100, 50);
+        const w = this.add(new Slider(thing.rgbw[3], 0, 1, 1/256), { x: 100, y: 130, x2: 30, h: 50 });
+
+        const update = () => {
+            thing.action('rgbw', {
+                rgbw: [r.value, g.value, b.value, w.value]
+            });
+        };
+        r.change.add(update, 100);
+        g.change.add(update, 100);
+        b.change.add(update, 100);
+        w.change.add(update, 100);
     }
 }
 
@@ -341,6 +379,9 @@ export class ThingDialog extends Dialog {
         if (thing.hasFeature('light-saturation')) {
             list.addItem(thing as Light, ThingActionSaturation);
         }
+        if (thing.hasFeature('roof-rgbw')) {
+            list.addItem(thing as Roof, ThingActionRgbw);
+        }
         if (thing.hasFeature('switch')) {
             list.addItem(thing as Switch, ThingActionSwitch);
         }
@@ -361,6 +402,9 @@ export class ThingDialog extends Dialog {
         }
         if (thing.hasFeature('door')) {
             list.addItem(thing as Temperature, ThingActionDoorSensor);
+        }
+        if (thing.hasFeature('light') && !thing.hasFeature('group')) {
+            list.addItem(thing as Light, ThingActionOnLevel);
         }
 
         const close = this.add(new Button('Close'), { y2: 20, w: 160 });
@@ -401,27 +445,34 @@ class RoundedSlider extends Slider {
     }
 
     protected paint(ctx: CanvasRenderingContext2D) {
-        const r = this._direction == SliderDirection.Horizontal ? (this.h - 4) / 2 : (this.w - 4) / 2;
-        this._handleWidth = r * 2;
 
         ctx.fillStyle = this.color();
         ctx.strokeStyle = this.form.style.color.insetLeft;
         ctx.lineWidth = 1;
         ctx.lineJoin = 'round';
 
+        const trackR = this._direction == SliderDirection.Horizontal ? (this.h - 4) / 4 : (this.w - 4) / 4;
+        const trackMarginW = this._direction == SliderDirection.Horizontal ? 0 : this.w / 4;
+        const trackMarginH = this._direction == SliderDirection.Horizontal ? this.h / 4 : 0;
+        const trackX1 = trackMarginW;
+        const trackY1 = trackMarginH;
+        const trackX2 = this.w - trackMarginW;
+        const trackY2 = this.h - trackMarginH;
         ctx.beginPath();
-        ctx.moveTo(r, 0);
-        ctx.lineTo(this.w - r, 0);
-        ctx.arcTo(this.w, 0, this.w, r, r);
-        ctx.lineTo(this.w, this.h - r);
-        ctx.arcTo(this.w, this.h, this.w - r, this.h, r);
-        ctx.lineTo(r, this.h);
-        ctx.arcTo(0, this.h, 0, this.h - r, r);
-        ctx.lineTo(0, r);
-        ctx.arcTo(0, 0, r, 0, r);
+        ctx.moveTo(trackX1 + trackR, trackY1);
+        ctx.lineTo(trackX2 - trackR, trackY1);
+        ctx.arcTo(trackX2, trackY1, trackX2, trackY1 + trackR, trackR);
+        ctx.lineTo(trackX2, trackY2 - trackR);
+        ctx.arcTo(trackX2, trackY2, trackX2 - trackR, trackY2, trackR);
+        ctx.lineTo(trackR, trackY2);
+        ctx.arcTo(trackX1, trackY2, trackX1, trackY2 - trackR, trackR);
+        ctx.lineTo(trackX1, trackY1 + trackR);
+        ctx.arcTo(trackX1, trackY1, trackX1 + trackR, trackY1, trackR);
         ctx.fill();
         ctx.stroke();
 
+        const r = this._direction == SliderDirection.Horizontal ? (this.h - 4) / 2 : (this.w - 4) / 2;
+        this._handleWidth = r * 2;
         ctx.beginPath();
         if (this._direction == SliderDirection.Horizontal) {
             let x = (this.w - this._handleWidth) * (this._value - this._min) / (this._max - this._min);
@@ -463,12 +514,13 @@ class ThingListItem extends ClickableListItem<Thing> {
 
         this.border = true;
 
-        if (thing.hasFeature('light')) {
+        if (thing.hasFeature('light') && (!thing.hasFeature('group') || (thing as Light).on)) {
             const slider = this.add(new LevelSlider((thing as Light).level, 0, 7, 1), { x: 260, y: 2, x2: 2, y2: 2 });
             slider.change.add(() => {
                 thing.action('level', {
                     level: slider.value,
                 });
+                (this.parent as ThingList).update();
             }, 500);
 
             const l = this.add(new Label(thing.name), { x: 64, y: 3, w: 200, y2: 3 });
@@ -553,7 +605,7 @@ export class ThingList extends List<Thing> {
         const things = await Thing.load();
         things.sort(sortBy('zone', 'type', 'name'));
         for (const thing of things) {
-            if (thing.hasFeature('group')) {
+            if (thing.hidden || thing.hasFeature('group')) {
                 continue;
             }
             const l = this.addItem(thing);
@@ -571,7 +623,7 @@ export class GroupList extends ThingList {
         this.clear();
         things.sort(sortBy('zone', 'type', 'name'));
         for (const thing of things) {
-            if (!thing.hasFeature('group')) {
+            if (thing.hidden || !thing.hasFeature('group')) {
                 continue;
             }
             const l = this.addItem(thing);

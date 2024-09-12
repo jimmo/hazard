@@ -191,6 +191,9 @@ export class MapView extends Control {
             if (thing.zone !== this._lastZone) {
                 continue;
             }
+            if (thing.hidden) {
+                continue;
+            }
             const mapThing = this._container.add(new MapThing(thing));
             mapThing.coords.w.fit();
             mapThing.coords.h.fit();

@@ -14,11 +14,11 @@ class SmartenItSwitch(Switch):
         super().__init__(hazard)
 
     async def dispatch_action(self, message):
-        if message["action"] == "toggle_left":
+        if message["action"] in ("toggle_left", "toggle_1",):
             await self.action("invoke", {"code": "left"})
-        if message["action"] == "toggle_center":
+        if message["action"] in ("toggle_center", "toggle_2",):
             await self.action("invoke", {"code": "center"})
-        if message["action"] == "toggle_right":
+        if message["action"] in ("toggle_right", "toggle_3",):
             await self.action("invoke", {"code": "right"})
 
     async def task(self):

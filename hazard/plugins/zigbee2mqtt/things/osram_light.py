@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import json
 
 from hazard.thing import register_thing
 from hazard.things import Light, LEVEL_OFF, LEVEL_MIN, LEVEL_ALL, LEVEL_MAX, TEMP_COOL, TEMP_WARM
@@ -17,17 +18,17 @@ class OsramLight(Light):
 
     async def publish(self, message, soft=True):
         if soft:
-            message["transition"] = 1
+            message["transition"] = 0.5
         OsramLight.queue.append((self._name, message,))
 
     async def on(self, soft=True):
         await super().on(soft)
         print("light on", self._name)
-        await self.publish({"state": "ON"}, soft)
+        await self.publish({"brightness": self.map_brightness()}, soft)
 
     async def off(self, soft=True):
         await super().off(soft)
-        await self.publish({"state": "OFF"}, soft)
+        await self.publish({"brightness": self.map_brightness()}, soft)
 
     def map_temperature(self):
         return 153 + (self._temperature - TEMP_COOL) * (370 - 153) // (TEMP_WARM - TEMP_COOL)
@@ -60,7 +61,7 @@ class OsramLight(Light):
             print("found group", group)
             await plugin.publish(f"zigbee2mqtt/{group}/set", message)
         else:
-            print("individual", members)
+            print("individual", members, len(members))
             for name in members:
                 await plugin.publish(f"zigbee2mqtt/{name}/set", message)
                 await asyncio.sleep(0.1)
@@ -72,7 +73,7 @@ class OsramLight(Light):
         OsramLight.queue = []
         last_message = {}
         members = set()
-        for name, message in q:
+        for name, message in sorted(q, key=lambda nm: json.dumps(nm[1])):
             if message == last_message:
                 members.add(name)
             else:

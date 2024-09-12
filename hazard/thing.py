@@ -52,12 +52,14 @@ class Thing:
         self._zone = "Home"
         self._location = {"x": 0, "y": 0}
         self._battery = 0
+        self._hidden = False
 
     def load_json(self, json):
         self._id = json.get("id", None)
         self._name = json.get("name", "(unknown)")
         self._zone = json.get("zone", "Home")
         self._location = json.get("location", {"x": 0, "y": 0})
+        self._hidden = json.get("hidden", False)
 
     def to_json(self):
         return {
@@ -69,6 +71,7 @@ class Thing:
             "features": self._features(),
             "location": self._location,
             "battery": self._battery,
+            "hidden": self._hidden,
         }
 
     def id(self):

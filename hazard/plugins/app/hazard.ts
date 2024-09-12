@@ -7,6 +7,7 @@ class ThingBase {
     location: ThingLocation;
     features: string[];
     battery: number;
+    hidden: boolean;
 }
 
 export class Status {
@@ -139,6 +140,7 @@ Serializer.register(Action);
 export class Light extends Thing {
     on: boolean;
     level: number;
+    on_level: number;
     hue: number;
     temperature: number;
     saturation: number;
@@ -177,6 +179,11 @@ export class Clock extends Thing {
     code: string;
 }
 Serializer.register(Clock);
+
+export class Roof extends Thing {
+    rgbw: number[];
+}
+Serializer.register(Roof);
 
 export class ThingLocation {
     x: number;

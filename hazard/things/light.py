@@ -56,6 +56,7 @@ class Light(Thing):
 
     async def on(self, soft=True):
         self._on = True
+        self._level = max(self._level, LEVEL_DIM)
         LOG.info('Setting "%s" to ON', self._name)
 
     async def off(self, soft=True):
@@ -69,11 +70,10 @@ class Light(Thing):
     async def level(self, level=None, delta=None, soft=True, toggle=False):
         if delta is not None:
             level = self._level + delta
-
-        if level == LEVEL_TIME_AWARE:
+        elif level == LEVEL_TIME_AWARE:
             level = resolve_time_aware_level()
 
-        level = min(LEVEL_MAX, max(0, level))
+        level = min(LEVEL_MAX, max(LEVEL_OFF, level))
 
         if toggle:
             if not self._on:

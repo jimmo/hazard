@@ -16,6 +16,10 @@ from hazard.action import Action
 LOG = logging.getLogger("hazard")
 
 
+class CancelExecuteException(Exception):
+    pass
+
+
 class Hazard:
     def __init__(self):
         self._plugins = {}
@@ -148,6 +152,9 @@ class Hazard:
         except:
             pass
 
+    def cancel_execute(self):
+        raise CancelExecuteException
+
     async def execute(self, code):
         if not code.strip():
             return True
@@ -164,16 +171,15 @@ async def __code():
     import time
     import os
 
-    result = True
-
     def cancel():
-        nonlocal result
-        result = False
+        raise CancelExecuteException
 
     try:
 """
             + "\n".join("        " + line for line in code.split("\n"))
             + """
+    except CancelExecuteException:
+        return False
     except Exception as e:
         import sys
         t, v, tb = sys.exc_info()
@@ -181,7 +187,7 @@ async def __code():
         import traceback
         logging.getLogger('hazard').error("Error in event handler: {}: {}\\n{}".format(t.__name__, v, ''.join(traceback.format_tb(tb))))
 
-    return result
+    return True
 
 self._exec_task = asyncio.get_event_loop().create_task(__code())
 """
@@ -198,6 +204,7 @@ self._exec_task = asyncio.get_event_loop().create_task(__code())
             "http_post": self.http_post,
             "lerp": lambda a, b, x, y, v: x + ((v-a)/(b-a))*(y-x),
             "hazard": self,
+            "CancelExecuteException": CancelExecuteException,
         }
         l = {
             "self": self,

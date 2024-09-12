@@ -44,3 +44,5 @@ class Clock(Thing):
             await asyncio.sleep(self._interval)
             # LOG.info('Clock tick')
             await self._hazard.execute(self._code)
+            self._hazard.save()
+
